@@ -18,7 +18,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { format, subDays, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { format, subDays, isWithinInterval, startOfDay, endOfDay, differenceInMinutes } from "date-fns";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -32,8 +32,29 @@ const Dashboard = () => {
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
   const inProgressOrders = orders.filter((o) => o.status === "in-progress").length;
 
-  const totalProductionTime = orders.reduce((total, order) => total + order.totalProductionTime, 0);
-  const averageProductionTime = totalOrders > 0 ? Math.round(totalProductionTime / totalOrders) : 0;
+  // Calculate actual production time based on start and completion dates
+  // For completed orders, we use the difference between updated_at (completion) and created_at (start)
+  // For in-progress orders, we use the difference between now and created_at
+  const actualProductionTimeByOrder = orders
+    .filter(o => o.status === "completed" || o.status === "in-progress")
+    .map(order => {
+      const startTime = new Date(order.createdAt);
+      const endTime = order.status === "completed" ? new Date(order.updatedAt) : new Date();
+      const productionTime = differenceInMinutes(endTime, startTime);
+      return {
+        ...order,
+        actualProductionTime: productionTime
+      };
+    });
+  
+  const totalActualProductionTime = actualProductionTimeByOrder.reduce(
+    (total, order) => total + order.actualProductionTime, 0
+  );
+  
+  const averageActualProductionTime = 
+    actualProductionTimeByOrder.length > 0
+      ? Math.round(totalActualProductionTime / actualProductionTimeByOrder.length)
+      : 0;
 
   // Total items produced
   const totalItems = orders
@@ -66,19 +87,29 @@ const Dashboard = () => {
     };
   }).reverse();
 
-  // Production time by product
-  const productionByProduct = orders
-    .flatMap((order) => order.items)
+  // Production time by product using actual time
+  const productionByProduct = actualProductionTimeByOrder
+    .flatMap((order) => 
+      order.items.map(item => ({
+        name: item.name,
+        units: item.quantity,
+        // Divide the actual production time proportionally based on item production time weight
+        time: Math.round(
+          (order.actualProductionTime * (item.quantity * item.productionTimePerUnit)) / 
+          order.items.reduce((sum, i) => sum + (i.quantity * i.productionTimePerUnit), 0)
+        )
+      }))
+    )
     .reduce((acc, item) => {
       const existing = acc.find((p) => p.name === item.name);
       if (existing) {
-        existing.units += item.quantity;
-        existing.time += item.quantity * item.productionTimePerUnit;
+        existing.units += item.units;
+        existing.time += item.time;
       } else {
         acc.push({
           name: item.name,
-          units: item.quantity,
-          time: item.quantity * item.productionTimePerUnit,
+          units: item.units,
+          time: item.time,
         });
       }
       return acc;
@@ -106,10 +137,10 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {averageProductionTime} min
+              {averageActualProductionTime} min
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Per order
+              Based on actual completion times
             </p>
           </CardContent>
         </Card>

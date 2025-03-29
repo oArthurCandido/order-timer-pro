@@ -26,7 +26,7 @@ const OrderQueue = () => {
           </div>
         </CardHeader>
         <CardContent className="py-8">
-          <div className="flex justify-center">
+          <div className="flex justify-center" data-testid="loading">
             <div className="animate-spin">
               <Clock className="h-8 w-8 text-primary" />
             </div>

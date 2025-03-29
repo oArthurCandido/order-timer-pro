@@ -1,152 +1,142 @@
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, render } from '@/test/test-utils';
-import OrderQueue from './OrderQueue';
-import { useOrder } from '@/contexts/OrderContext';
-import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { OrderProvider, useOrder } from "@/contexts/OrderContext";
+import OrderQueue from "./OrderQueue";
+import { OrderStatus } from "@/types/order";
 
-// Mock the useOrder hook
-vi.mock('@/contexts/OrderContext', () => {
-  const updateOrderStatus = vi.fn();
-  return {
-    useOrder: vi.fn(() => ({
-      loading: false,
-      orders: [],
-      updateOrderStatus,
-    })),
+// Mock the OrderContext
+vi.mock("@/contexts/OrderContext", () => ({
+  useOrder: vi.fn(),
+  OrderProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+describe("OrderQueue Component", () => {
+  const mockDefaultSettings = {
+    items: [
+      { id: "1", name: "Item 1", productionTimePerUnit: 10 },
+      { id: "2", name: "Item 2", productionTimePerUnit: 15 },
+    ],
+    workingHoursPerDay: 8,
+    startTime: "09:00",
+    endTime: "17:00",
+    workingDays: [1, 2, 3, 4, 5],
   };
-});
 
-describe('OrderQueue', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  const mockEmptyContextValue = {
+    orders: [],
+    settings: mockDefaultSettings,
+    addOrder: vi.fn(),
+    updateOrderStatus: vi.fn(),
+    updateOrderPosition: vi.fn(),
+    deleteOrder: vi.fn(),
+    updateSettings: vi.fn(),
+    calculateNewOrder: vi.fn(),
+    loading: false,
+  };
 
-  it('renders loading state correctly', () => {
-    // Set the mock to return loading=true
-    vi.mocked(useOrder).mockReturnValueOnce({
+  it("should show loading state", () => {
+    (useOrder as any).mockReturnValue({
+      ...mockEmptyContextValue,
       loading: true,
-      orders: [],
-      updateOrderStatus: vi.fn(),
     });
 
     render(<OrderQueue />);
-    
-    expect(screen.getByText('Production Queue')).toBeInTheDocument();
-    expect(screen.queryByText('No pending orders in queue')).not.toBeInTheDocument();
+    expect(screen.getByText("Production Queue")).toBeInTheDocument();
+    expect(screen.getByTestId("loading")).toBeInTheDocument();
   });
 
-  it('renders empty queue message when no orders are pending', () => {
-    // Set the mock to return an empty orders array
-    vi.mocked(useOrder).mockReturnValueOnce({
+  it("should show empty queue message when there are no orders", () => {
+    (useOrder as any).mockReturnValue({
+      ...mockEmptyContextValue,
       loading: false,
       orders: [],
-      updateOrderStatus: vi.fn(),
     });
 
     render(<OrderQueue />);
-    
-    expect(screen.getByText('Production Queue')).toBeInTheDocument();
-    expect(screen.getByText('No pending orders in queue')).toBeInTheDocument();
+    expect(screen.getByText("Production Queue")).toBeInTheDocument();
+    expect(screen.getByText("No pending orders in queue")).toBeInTheDocument();
   });
 
-  it('renders pending orders correctly', () => {
-    // Set the mock to return orders with pending status
-    const mockOrders = [
+  it("should show pending orders and allow starting next order when no order is in progress", () => {
+    const mockUpdateOrderStatus = vi.fn();
+    const oneWeekFromNow = new Date();
+    oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+    
+    const pendingOrders = [
       {
-        id: '1',
-        customerName: 'John Doe',
-        customerEmail: 'john@example.com',
+        id: "order1",
+        customerName: "John Doe",
+        customerEmail: "john@example.com",
         items: [
-          { id: '1', name: 'Item 1', quantity: 2, productionTimePerUnit: 10 },
+          { id: "1", name: "Item 1", quantity: 2, productionTimePerUnit: 10 },
         ],
-        status: 'pending',
+        status: "pending" as OrderStatus,
         totalProductionTime: 20,
-        estimatedCompletionDate: new Date(),
+        estimatedCompletionDate: oneWeekFromNow,
         queuePosition: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
     ];
 
-    vi.mocked(useOrder).mockReturnValueOnce({
-      loading: false,
-      orders: mockOrders,
-      updateOrderStatus: vi.fn(),
+    (useOrder as any).mockReturnValue({
+      ...mockEmptyContextValue,
+      orders: pendingOrders,
+      updateOrderStatus: mockUpdateOrderStatus,
     });
 
     render(<OrderQueue />);
+    expect(screen.getByText("Production Queue")).toBeInTheDocument();
+    expect(screen.getByText("John Doe")).toBeInTheDocument();
+    expect(screen.getByText("Start Next Order")).toBeInTheDocument();
     
-    expect(screen.getByText('Production Queue')).toBeInTheDocument();
-    expect(screen.getByText('John Doe')).toBeInTheDocument();
-    expect(screen.getByText('Position: 1')).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Start Next Order"));
+    expect(mockUpdateOrderStatus).toHaveBeenCalledWith("order1", "in-progress");
   });
 
-  it('renders in-progress order correctly', () => {
-    // Set the mock to return an order with in-progress status
-    const mockOrders = [
-      {
-        id: '1',
-        customerName: 'John Doe',
-        customerEmail: 'john@example.com',
-        items: [
-          { id: '1', name: 'Item 1', quantity: 2, productionTimePerUnit: 10 },
-        ],
-        status: 'in-progress',
-        totalProductionTime: 20,
-        estimatedCompletionDate: new Date(),
-        queuePosition: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
+  it("should show in-progress order", () => {
+    const inProgressOrder = {
+      id: "order1",
+      customerName: "Jane Smith",
+      customerEmail: "jane@example.com",
+      items: [
+        { id: "1", name: "Item 1", quantity: 3, productionTimePerUnit: 10 },
+        { id: "2", name: "Item 2", quantity: 1, productionTimePerUnit: 15 },
+      ],
+      status: "in-progress" as OrderStatus,
+      totalProductionTime: 45,
+      estimatedCompletionDate: new Date(),
+      queuePosition: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-    vi.mocked(useOrder).mockReturnValueOnce({
-      loading: false,
-      orders: mockOrders,
-      updateOrderStatus: vi.fn(),
+    const pendingOrder = {
+      id: "order2",
+      customerName: "Bob Johnson",
+      customerEmail: "bob@example.com",
+      items: [
+        { id: "2", name: "Item 2", quantity: 2, productionTimePerUnit: 15 },
+      ],
+      status: "pending" as OrderStatus,
+      totalProductionTime: 30,
+      estimatedCompletionDate: new Date(),
+      queuePosition: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    (useOrder as any).mockReturnValue({
+      ...mockEmptyContextValue,
+      orders: [inProgressOrder, pendingOrder],
     });
 
     render(<OrderQueue />);
-    
-    expect(screen.getByText('Production Queue')).toBeInTheDocument();
-    expect(screen.getByText('Currently In Progress')).toBeInTheDocument();
-    expect(screen.getByText('John Doe')).toBeInTheDocument();
-  });
-
-  it('triggers updateOrderStatus when "Start Next Order" button is clicked', async () => {
-    const updateOrderStatus = vi.fn();
-    const mockOrders = [
-      {
-        id: 'order-1',
-        customerName: 'John Doe',
-        customerEmail: 'john@example.com',
-        items: [
-          { id: '1', name: 'Item 1', quantity: 2, productionTimePerUnit: 10 },
-        ],
-        status: 'pending',
-        totalProductionTime: 20,
-        estimatedCompletionDate: new Date(),
-        queuePosition: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
-
-    vi.mocked(useOrder).mockReturnValueOnce({
-      loading: false,
-      orders: mockOrders,
-      updateOrderStatus,
-    });
-
-    render(<OrderQueue />);
-    
-    const startButton = screen.getByText('Start Next Order');
-    expect(startButton).toBeInTheDocument();
-    
-    const user = userEvent.setup();
-    await user.click(startButton);
-    
-    expect(updateOrderStatus).toHaveBeenCalledWith('order-1', 'in-progress');
+    expect(screen.getByText("Currently In Progress")).toBeInTheDocument();
+    expect(screen.getByText("Jane Smith")).toBeInTheDocument();
+    expect(screen.getByText("3x Item 1")).toBeInTheDocument();
+    expect(screen.getByText("1x Item 2")).toBeInTheDocument();
+    expect(screen.getByText("Bob Johnson")).toBeInTheDocument();
   });
 });

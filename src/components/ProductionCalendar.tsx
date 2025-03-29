@@ -161,11 +161,11 @@ const ProductionCalendar = () => {
                   return calendarDays[dayKey]?.status === "full";
                 }
               }}
-              // Fix: Replace "styles" with "classNames" and properly format the class names
+              // Fix: Use the correct classNames format with "day_" prefix removed
               classNames={{
-                day_free: "bg-green-50 text-green-700 hover:bg-green-100",
-                day_busy: "bg-yellow-50 text-yellow-700 hover:bg-yellow-100",
-                day_full: "bg-red-50 text-red-700 hover:bg-red-100"
+                day_modifier_free: "bg-green-50 text-green-700 hover:bg-green-100",
+                day_modifier_busy: "bg-yellow-50 text-yellow-700 hover:bg-yellow-100",
+                day_modifier_full: "bg-red-50 text-red-700 hover:bg-red-100"
               }}
             />
             <div className="flex justify-center gap-4 mt-4">
