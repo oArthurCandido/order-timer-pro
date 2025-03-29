@@ -4,7 +4,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrder } from "@/contexts/OrderContext";
 import { addDays, isWithinInterval, startOfDay, endOfDay, format } from "date-fns";
-import { calculateEstimatedCompletionDate } from "@/lib/calculateProductionTime";
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "lucide-react";
 
@@ -106,6 +105,7 @@ const ProductionCalendar = () => {
     setSelectedDayOrders(ordersForSelectedDay);
   }, [selectedDate, orders]);
 
+  // This function is causing the TypeScript error because it's used incorrectly in the Calendar component
   const getColorClass = (date: Date): string => {
     const dayKey = format(date, "yyyy-MM-dd");
     const dayData = calendarDays[dayKey];
@@ -161,8 +161,11 @@ const ProductionCalendar = () => {
                   return calendarDays[dayKey]?.status === "full";
                 }
               }}
-              styles={{
-                day: (date) => getColorClass(date)
+              // Fix: Replace "styles" with "classNames" and properly format the class names
+              classNames={{
+                day_free: "bg-green-50 text-green-700 hover:bg-green-100",
+                day_busy: "bg-yellow-50 text-yellow-700 hover:bg-yellow-100",
+                day_full: "bg-red-50 text-red-700 hover:bg-red-100"
               }}
             />
             <div className="flex justify-center gap-4 mt-4">
