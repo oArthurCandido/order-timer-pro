@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrder } from "@/contexts/OrderContext";
 import { formatDuration } from "@/lib/calculateProductionTime";
 import { format } from "date-fns";
-import { PendingCircle, Play } from "lucide-react";
+import { Clock, Play } from "lucide-react";
 
 const OrderQueue = () => {
   const { orders, updateOrderStatus } = useOrder();
@@ -20,7 +20,7 @@ const OrderQueue = () => {
     <Card className="card-gradient">
       <CardHeader>
         <div className="flex items-center space-x-2">
-          <PendingCircle className="h-5 w-5 text-primary" />
+          <Clock className="h-5 w-5 text-primary" />
           <CardTitle>Production Queue</CardTitle>
         </div>
       </CardHeader>
