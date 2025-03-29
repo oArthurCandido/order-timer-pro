@@ -10,7 +10,7 @@ import { Calculator, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 const OrderCalculator = () => {
-  const { settings, calculateNewOrder, addOrder } = useOrder();
+  const { settings, calculateNewOrder, addOrder, loading } = useOrder();
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [item1Quantity, setItem1Quantity] = useState<number>(0);
@@ -19,6 +19,7 @@ const OrderCalculator = () => {
     totalProductionTime: number;
     estimatedCompletionDate: Date;
   } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCalculate = () => {
     if (!customerName || !customerEmail) {
@@ -35,48 +36,76 @@ const OrderCalculator = () => {
     setCalculationResult(result);
   };
 
-  const handleAddOrder = () => {
+  const handleAddOrder = async () => {
     if (!calculationResult) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const item1 = settings.items[0];
+      const item2 = settings.items[1];
 
-    const item1 = settings.items[0];
-    const item2 = settings.items[1];
+      const orderItems = [];
 
-    const orderItems = [];
+      if (item1Quantity > 0) {
+        orderItems.push({
+          id: item1.id,
+          name: item1.name,
+          quantity: item1Quantity,
+          productionTimePerUnit: item1.productionTimePerUnit,
+        });
+      }
 
-    if (item1Quantity > 0) {
-      orderItems.push({
-        id: item1.id,
-        name: item1.name,
-        quantity: item1Quantity,
-        productionTimePerUnit: item1.productionTimePerUnit,
+      if (item2Quantity > 0) {
+        orderItems.push({
+          id: item2.id,
+          name: item2.name,
+          quantity: item2Quantity,
+          productionTimePerUnit: item2.productionTimePerUnit,
+        });
+      }
+
+      await addOrder({
+        customerName,
+        customerEmail,
+        items: orderItems,
+        status: "pending",
+        totalProductionTime: calculationResult.totalProductionTime,
+        estimatedCompletionDate: calculationResult.estimatedCompletionDate,
       });
+
+      // Reset form
+      setCustomerName("");
+      setCustomerEmail("");
+      setItem1Quantity(0);
+      setItem2Quantity(0);
+      setCalculationResult(null);
+    } catch (error) {
+      console.error("Error adding order:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (item2Quantity > 0) {
-      orderItems.push({
-        id: item2.id,
-        name: item2.name,
-        quantity: item2Quantity,
-        productionTimePerUnit: item2.productionTimePerUnit,
-      });
-    }
-
-    addOrder({
-      customerName,
-      customerEmail,
-      items: orderItems,
-      status: "pending",
-      totalProductionTime: calculationResult.totalProductionTime,
-      estimatedCompletionDate: calculationResult.estimatedCompletionDate,
-    });
-
-    // Reset form
-    setCustomerName("");
-    setCustomerEmail("");
-    setItem1Quantity(0);
-    setItem2Quantity(0);
-    setCalculationResult(null);
   };
+
+  if (loading) {
+    return (
+      <Card className="card-gradient">
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <Calculator className="h-5 w-5 text-primary" />
+            <CardTitle>Order Time Calculator</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="py-8">
+          <div className="flex justify-center">
+            <div className="animate-spin">
+              <Clock className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="card-gradient">
@@ -167,9 +196,10 @@ const OrderCalculator = () => {
             variant="default" 
             className="w-full gradient-bg"
             onClick={handleAddOrder}
+            disabled={isSubmitting}
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            Accept and Add to Queue
+            {isSubmitting ? "Adding to Queue..." : "Accept and Add to Queue"}
           </Button>
         </CardFooter>
       )}

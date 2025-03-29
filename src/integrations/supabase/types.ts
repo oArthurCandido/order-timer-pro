@@ -9,7 +9,120 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          created_at: string
+          customer_email: string
+          customer_name: string
+          estimated_completion_date: string
+          id: string
+          item1_quantity: number
+          item2_quantity: number
+          queue_position: number
+          status: string
+          total_production_time: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          estimated_completion_date: string
+          id?: string
+          item1_quantity?: number
+          item2_quantity?: number
+          queue_position: number
+          status?: string
+          total_production_time: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          estimated_completion_date?: string
+          id?: string
+          item1_quantity?: number
+          item2_quantity?: number
+          queue_position?: number
+          status?: string
+          total_production_time?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      production_settings: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          item1_name: string
+          item1_production_time: number
+          item2_name: string
+          item2_production_time: number
+          start_time: string
+          updated_at: string
+          user_id: string | null
+          working_days: number[]
+          working_hours_per_day: number
+        }
+        Insert: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          item1_name?: string
+          item1_production_time?: number
+          item2_name?: string
+          item2_production_time?: number
+          start_time?: string
+          updated_at?: string
+          user_id?: string | null
+          working_days?: number[]
+          working_hours_per_day?: number
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          item1_name?: string
+          item1_production_time?: number
+          item2_name?: string
+          item2_production_time?: number
+          start_time?: string
+          updated_at?: string
+          user_id?: string | null
+          working_days?: number[]
+          working_hours_per_day?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

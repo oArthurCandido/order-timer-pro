@@ -1,9 +1,12 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { Clock, ClipboardList, LineChart } from "lucide-react";
+import { Clock, ClipboardList, LineChart, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
   const location = useLocation();
+  const { signOut, user } = useAuth();
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -59,6 +62,18 @@ const Navbar = () => {
                 <span>Dashboard</span>
               </div>
             </Link>
+            
+            {user && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => signOut()}
+                className="ml-2"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            )}
           </div>
         </div>
       </div>

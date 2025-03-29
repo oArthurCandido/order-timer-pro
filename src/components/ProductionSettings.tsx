@@ -20,8 +20,14 @@ const weekdays = [
 ];
 
 const ProductionSettings = () => {
-  const { settings, updateSettings } = useOrder();
+  const { settings, updateSettings, loading } = useOrder();
   const [localSettings, setLocalSettings] = useState<Settings>(settings);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update local state when settings from context change
+  React.useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
 
   const handleItemChange = (index: number, field: string, value: string | number) => {
     const updatedItems = [...localSettings.items];
@@ -51,10 +57,38 @@ const ProductionSettings = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateSettings(localSettings);
+    setIsSubmitting(true);
+    
+    try {
+      await updateSettings(localSettings);
+    } catch (error) {
+      console.error("Error updating settings:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <Card className="card-gradient">
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <Clock className="h-5 w-5 text-primary" />
+            <CardTitle>Production Settings</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="py-8">
+          <div className="flex justify-center">
+            <div className="animate-spin">
+              <Clock className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="card-gradient">
@@ -169,9 +203,13 @@ const ProductionSettings = () => {
             </div>
           </div>
 
-          <Button type="submit" className="w-full">
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={isSubmitting}
+          >
             <Save className="mr-2 h-4 w-4" />
-            Save Settings
+            {isSubmitting ? "Saving Settings..." : "Save Settings"}
           </Button>
         </form>
       </CardContent>

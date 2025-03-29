@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import { Clock, Play } from "lucide-react";
 
 const OrderQueue = () => {
-  const { orders, updateOrderStatus } = useOrder();
+  const { orders, updateOrderStatus, loading } = useOrder();
 
   // Filter for pending orders and sort by queue position
   const pendingOrders = orders
@@ -15,6 +15,26 @@ const OrderQueue = () => {
 
   // Get the current in-progress order if any
   const inProgressOrder = orders.find((order) => order.status === "in-progress");
+
+  if (loading) {
+    return (
+      <Card className="card-gradient">
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <Clock className="h-5 w-5 text-primary" />
+            <CardTitle>Production Queue</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="py-8">
+          <div className="flex justify-center">
+            <div className="animate-spin">
+              <Clock className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="card-gradient">
