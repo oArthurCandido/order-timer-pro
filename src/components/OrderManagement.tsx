@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const OrderManagement = () => {
   const { orders, updateOrderStatus, updateOrderPosition, deleteOrder } = useOrder();
@@ -48,6 +50,7 @@ const OrderManagement = () => {
   const [emailOrder, setEmailOrder] = useState<Order | null>(null);
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
+  const isMobile = useIsMobile();
 
   const sortedOrders = [...orders].sort((a, b) => {
     // First by status - pending and in-progress first
@@ -156,131 +159,270 @@ const OrderManagement = () => {
     }
   };
 
+  const MobileOrderCard = ({ order }: { order: Order }) => (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg">{order.customerName}</CardTitle>
+          {getStatusBadge(order.status)}
+        </div>
+        <p className="text-sm text-muted-foreground">{order.customerEmail}</p>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+          <div>
+            <p className="font-medium text-muted-foreground">Items:</p>
+            {order.items.map((item) => (
+              <p key={item.id} className="text-foreground">
+                {item.quantity}x {item.name}
+              </p>
+            ))}
+          </div>
+          <div>
+            <p className="font-medium text-muted-foreground">Production Time:</p>
+            <p className="text-foreground">{formatDuration(order.totalProductionTime)}</p>
+            
+            <p className="font-medium text-muted-foreground mt-1">Est. Completion:</p>
+            <p className="text-foreground">{format(new Date(order.estimatedCompletionDate), "MMM d, h:mm a")}</p>
+            
+            {(order.status === "pending" || order.status === "in-progress") && (
+              <>
+                <p className="font-medium text-muted-foreground mt-1">Queue Position:</p>
+                <p className="text-foreground">{order.queuePosition}</p>
+              </>
+            )}
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="pt-0">
+        <div className="w-full">
+          <div className="flex space-x-2 justify-end">
+            {order.status === "pending" && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleStatusChange(order.id, "in-progress")}
+              >
+                <Play className="h-3.5 w-3.5 mr-1" />
+                Start
+              </Button>
+            )}
+            
+            {order.status === "in-progress" && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleStatusChange(order.id, "completed")}
+              >
+                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                Complete
+              </Button>
+            )}
+            
+            {order.status === "completed" && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => prepareEmail(order)}
+              >
+                <Mail className="h-3.5 w-3.5 mr-1" />
+                Email
+              </Button>
+            )}
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {order.status === "pending" && (
+                  <>
+                    <DropdownMenuItem 
+                      onClick={() => handleMoveOrder(order.id, "up")}
+                      disabled={order.queuePosition === 1}
+                    >
+                      <MoveUp className="mr-2 h-4 w-4" />
+                      Move Up in Queue
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleMoveOrder(order.id, "down")}
+                    >
+                      <MoveDown className="mr-2 h-4 w-4" />
+                      Move Down in Queue
+                    </DropdownMenuItem>
+                  </>
+                )}
+                
+                {order.status === "in-progress" && (
+                  <DropdownMenuItem onClick={() => handleStatusChange(order.id, "pending")}>
+                    <Pause className="mr-2 h-4 w-4" />
+                    Pause Production
+                  </DropdownMenuItem>
+                )}
+                
+                {order.status !== "cancelled" && (
+                  <DropdownMenuItem onClick={() => handleStatusChange(order.id, "cancelled")}>
+                    <X className="mr-2 h-4 w-4" />
+                    Cancel Order
+                  </DropdownMenuItem>
+                )}
+                
+                <DropdownMenuItem 
+                  onClick={() => handleDelete(order.id)}
+                  className="text-red-500 focus:text-red-500"
+                >
+                  <Trash className="mr-2 h-4 w-4" />
+                  Delete Order
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </CardFooter>
+    </Card>
+  );
+
   return (
     <>
-      <div className="bg-background rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Production Time</TableHead>
-              <TableHead>Est. Completion</TableHead>
-              <TableHead>Queue</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedOrders.length === 0 ? (
+      {isMobile ? (
+        <div className="space-y-4">
+          {sortedOrders.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No orders found
+            </div>
+          ) : (
+            sortedOrders.map((order) => (
+              <MobileOrderCard key={order.id} order={order} />
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="bg-background rounded-lg border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  No orders found
-                </TableCell>
+                <TableHead>Customer</TableHead>
+                <TableHead>Items</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Production Time</TableHead>
+                <TableHead>Est. Completion</TableHead>
+                <TableHead>Queue</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ) : (
-              sortedOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{order.customerName}</div>
-                      <div className="text-xs text-muted-foreground">{order.customerEmail}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {order.items.map((item) => (
-                        <div key={item.id}>
-                          {item.quantity}x {item.name}
-                        </div>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(order.status)}</TableCell>
-                  <TableCell>{formatDuration(order.totalProductionTime)}</TableCell>
-                  <TableCell>
-                    {format(new Date(order.estimatedCompletionDate), "MMM d, h:mm a")}
-                  </TableCell>
-                  <TableCell>
-                    {(order.status === "pending" || order.status === "in-progress") ? (
-                      <span className="font-medium">{order.queuePosition}</span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {order.status === "pending" && (
-                          <>
-                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, "in-progress")}>
-                              <Play className="mr-2 h-4 w-4" />
-                              Start Production
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleMoveOrder(order.id, "up")}
-                              disabled={order.queuePosition === 1}
-                            >
-                              <MoveUp className="mr-2 h-4 w-4" />
-                              Move Up in Queue
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleMoveOrder(order.id, "down")}
-                            >
-                              <MoveDown className="mr-2 h-4 w-4" />
-                              Move Down in Queue
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        
-                        {order.status === "in-progress" && (
-                          <>
-                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, "completed")}>
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              Mark as Completed
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, "pending")}>
-                              <Pause className="mr-2 h-4 w-4" />
-                              Pause Production
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                        
-                        {order.status === "completed" && (
-                          <DropdownMenuItem onClick={() => prepareEmail(order)}>
-                            <Mail className="mr-2 h-4 w-4" />
-                            Send Completion Email
-                          </DropdownMenuItem>
-                        )}
-                        
-                        {order.status !== "cancelled" && (
-                          <DropdownMenuItem onClick={() => handleStatusChange(order.id, "cancelled")}>
-                            <X className="mr-2 h-4 w-4" />
-                            Cancel Order
-                          </DropdownMenuItem>
-                        )}
-                        
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(order.id)}
-                          className="text-red-500 focus:text-red-500"
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          Delete Order
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+            </TableHeader>
+            <TableBody>
+              {sortedOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No orders found
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : (
+                sortedOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{order.customerName}</div>
+                        <div className="text-xs text-muted-foreground">{order.customerEmail}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {order.items.map((item) => (
+                          <div key={item.id}>
+                            {item.quantity}x {item.name}
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(order.status)}</TableCell>
+                    <TableCell>{formatDuration(order.totalProductionTime)}</TableCell>
+                    <TableCell>
+                      {format(new Date(order.estimatedCompletionDate), "MMM d, h:mm a")}
+                    </TableCell>
+                    <TableCell>
+                      {(order.status === "pending" || order.status === "in-progress") ? (
+                        <span className="font-medium">{order.queuePosition}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {order.status === "pending" && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleStatusChange(order.id, "in-progress")}>
+                                <Play className="mr-2 h-4 w-4" />
+                                Start Production
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleMoveOrder(order.id, "up")}
+                                disabled={order.queuePosition === 1}
+                              >
+                                <MoveUp className="mr-2 h-4 w-4" />
+                                Move Up in Queue
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleMoveOrder(order.id, "down")}
+                              >
+                                <MoveDown className="mr-2 h-4 w-4" />
+                                Move Down in Queue
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          
+                          {order.status === "in-progress" && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleStatusChange(order.id, "completed")}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Mark as Completed
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusChange(order.id, "pending")}>
+                                <Pause className="mr-2 h-4 w-4" />
+                                Pause Production
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          
+                          {order.status === "completed" && (
+                            <DropdownMenuItem onClick={() => prepareEmail(order)}>
+                              <Mail className="mr-2 h-4 w-4" />
+                              Send Completion Email
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {order.status !== "cancelled" && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, "cancelled")}>
+                              <X className="mr-2 h-4 w-4" />
+                              Cancel Order
+                            </DropdownMenuItem>
+                          )}
+                          
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(order.id)}
+                            className="text-red-500 focus:text-red-500"
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete Order
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>

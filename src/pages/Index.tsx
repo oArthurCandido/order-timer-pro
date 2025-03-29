@@ -1,10 +1,12 @@
 
 import OrderCalculator from "@/components/OrderCalculator";
 import OrderQueue from "@/components/OrderQueue";
-import ProductionSettings from "@/components/ProductionSettings";
 import Navbar from "@/components/Navbar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
+  const isMobile = useIsMobile();
+  
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -13,12 +15,18 @@ const Index = () => {
           <div className="md:col-span-2">
             <OrderCalculator />
           </div>
-          <div>
-            <div className="space-y-6">
-              <OrderQueue />
-              <ProductionSettings />
+          {!isMobile && (
+            <div>
+              <div className="space-y-6">
+                <OrderQueue />
+              </div>
             </div>
-          </div>
+          )}
+          {isMobile && (
+            <div>
+              <OrderQueue />
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -9,6 +9,8 @@ import OrderManagement from "./pages/OrderManagement";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
+import Calendar from "./pages/Calendar";
 import { OrderProvider } from "./contexts/OrderContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -28,6 +30,8 @@ const App = () => (
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/order-management" element={<ProtectedRoute><OrderManagement /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </OrderProvider>
