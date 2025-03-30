@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Table,
@@ -19,7 +18,7 @@ import { useOrder } from "@/contexts/OrderContext";
 import { Badge } from "@/components/ui/badge";
 import { Order, OrderStatus } from "@/types/order";
 import { formatDuration } from "@/lib/calculateProductionTime";
-import { format, differenceInMinutes } from "date-fns";
+import { format } from "date-fns";
 import {
   CheckCircle,
   Clock,
@@ -52,19 +51,6 @@ const OrderManagement = () => {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const isMobile = useIsMobile();
-  const [processingAction, setProcessingAction] = useState<string | null>(null);
-
-  // Calculate current production time for in-progress orders
-  const getActualProductionTime = (order: Order): number => {
-    let time = order.productionTimeAccumulated || 0;
-    
-    // If order is in progress, add the current running time
-    if (order.status === 'in-progress' && order.productionStartTime) {
-      time += differenceInMinutes(new Date(), new Date(order.productionStartTime));
-    }
-    
-    return time;
-  };
 
   const sortedOrders = [...orders].sort((a, b) => {
     // First by status - pending and in-progress first
@@ -90,20 +76,11 @@ const OrderManagement = () => {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const handleStatusChange = async (id: string, newStatus: OrderStatus) => {
-    if (processingAction) return;
-    
-    try {
-      setProcessingAction(id);
-      await updateOrderStatus(id, newStatus);
-    } finally {
-      setProcessingAction(null);
-    }
+  const handleStatusChange = (id: string, newStatus: OrderStatus) => {
+    updateOrderStatus(id, newStatus);
   };
 
-  const handleMoveOrder = async (id: string, direction: "up" | "down") => {
-    if (processingAction) return;
-    
+  const handleMoveOrder = (id: string, direction: "up" | "down") => {
     const order = orders.find((o) => o.id === id);
     if (!order) return;
     
@@ -111,29 +88,17 @@ const OrderManagement = () => {
       ? Math.max(1, order.queuePosition - 1)
       : order.queuePosition + 1;
       
-    try {
-      setProcessingAction(id);
-      await updateOrderPosition(id, newPosition);
-    } finally {
-      setProcessingAction(null);
-    }
+    updateOrderPosition(id, newPosition);
   };
 
   const handleDelete = (id: string) => {
     setConfirmDeleteId(id);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (confirmDeleteId) {
-      if (processingAction) return;
-      
-      try {
-        setProcessingAction(confirmDeleteId);
-        await deleteOrder(confirmDeleteId);
-      } finally {
-        setProcessingAction(null);
-        setConfirmDeleteId(null);
-      }
+      deleteOrder(confirmDeleteId);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -214,11 +179,8 @@ const OrderManagement = () => {
             ))}
           </div>
           <div>
-            <p className="font-medium text-muted-foreground">Est. Production Time:</p>
+            <p className="font-medium text-muted-foreground">Production Time:</p>
             <p className="text-foreground">{formatDuration(order.totalProductionTime)}</p>
-            
-            <p className="font-medium text-muted-foreground mt-1">Actual Production Time:</p>
-            <p className="text-foreground">{formatDuration(getActualProductionTime(order))}</p>
             
             <p className="font-medium text-muted-foreground mt-1">Est. Completion:</p>
             <p className="text-foreground">{format(new Date(order.estimatedCompletionDate), "MMM d, h:mm a")}</p>
@@ -238,8 +200,7 @@ const OrderManagement = () => {
             {order.status === "pending" && (
               <Button 
                 variant="outline" 
-                size="sm"
-                disabled={!!processingAction} 
+                size="sm" 
                 onClick={() => handleStatusChange(order.id, "in-progress")}
               >
                 <Play className="h-3.5 w-3.5 mr-1" />
@@ -250,8 +211,7 @@ const OrderManagement = () => {
             {order.status === "in-progress" && (
               <Button 
                 variant="outline" 
-                size="sm"
-                disabled={!!processingAction}
+                size="sm" 
                 onClick={() => handleStatusChange(order.id, "completed")}
               >
                 <CheckCircle className="h-3.5 w-3.5 mr-1" />
@@ -272,11 +232,7 @@ const OrderManagement = () => {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  disabled={!!processingAction}
-                >
+                <Button variant="ghost" size="sm">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -285,14 +241,13 @@ const OrderManagement = () => {
                   <>
                     <DropdownMenuItem 
                       onClick={() => handleMoveOrder(order.id, "up")}
-                      disabled={order.queuePosition === 1 || !!processingAction}
+                      disabled={order.queuePosition === 1}
                     >
                       <MoveUp className="mr-2 h-4 w-4" />
                       Move Up in Queue
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleMoveOrder(order.id, "down")}
-                      disabled={!!processingAction}
                     >
                       <MoveDown className="mr-2 h-4 w-4" />
                       Move Down in Queue
@@ -301,20 +256,14 @@ const OrderManagement = () => {
                 )}
                 
                 {order.status === "in-progress" && (
-                  <DropdownMenuItem 
-                    onClick={() => handleStatusChange(order.id, "pending")}
-                    disabled={!!processingAction}
-                  >
+                  <DropdownMenuItem onClick={() => handleStatusChange(order.id, "pending")}>
                     <Pause className="mr-2 h-4 w-4" />
                     Pause Production
                   </DropdownMenuItem>
                 )}
                 
                 {order.status !== "cancelled" && (
-                  <DropdownMenuItem 
-                    onClick={() => handleStatusChange(order.id, "cancelled")}
-                    disabled={!!processingAction}
-                  >
+                  <DropdownMenuItem onClick={() => handleStatusChange(order.id, "cancelled")}>
                     <X className="mr-2 h-4 w-4" />
                     Cancel Order
                   </DropdownMenuItem>
@@ -322,7 +271,6 @@ const OrderManagement = () => {
                 
                 <DropdownMenuItem 
                   onClick={() => handleDelete(order.id)}
-                  disabled={!!processingAction}
                   className="text-red-500 focus:text-red-500"
                 >
                   <Trash className="mr-2 h-4 w-4" />
@@ -358,8 +306,7 @@ const OrderManagement = () => {
                 <TableHead>Customer</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Est. Time</TableHead>
-                <TableHead>Actual Time</TableHead>
+                <TableHead>Production Time</TableHead>
                 <TableHead>Est. Completion</TableHead>
                 <TableHead>Queue</TableHead>
                 <TableHead>Actions</TableHead>
@@ -368,7 +315,7 @@ const OrderManagement = () => {
             <TableBody>
               {sortedOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No orders found
                   </TableCell>
                 </TableRow>
@@ -392,7 +339,6 @@ const OrderManagement = () => {
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell>{formatDuration(order.totalProductionTime)}</TableCell>
-                    <TableCell>{formatDuration(getActualProductionTime(order))}</TableCell>
                     <TableCell>
                       {format(new Date(order.estimatedCompletionDate), "MMM d, h:mm a")}
                     </TableCell>
@@ -406,34 +352,26 @@ const OrderManagement = () => {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            disabled={!!processingAction}
-                          >
+                          <Button variant="ghost" size="icon">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           {order.status === "pending" && (
                             <>
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusChange(order.id, "in-progress")}
-                                disabled={!!processingAction}
-                              >
+                              <DropdownMenuItem onClick={() => handleStatusChange(order.id, "in-progress")}>
                                 <Play className="mr-2 h-4 w-4" />
                                 Start Production
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleMoveOrder(order.id, "up")}
-                                disabled={order.queuePosition === 1 || !!processingAction}
+                                disabled={order.queuePosition === 1}
                               >
                                 <MoveUp className="mr-2 h-4 w-4" />
                                 Move Up in Queue
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleMoveOrder(order.id, "down")}
-                                disabled={!!processingAction}
                               >
                                 <MoveDown className="mr-2 h-4 w-4" />
                                 Move Down in Queue
@@ -443,17 +381,11 @@ const OrderManagement = () => {
                           
                           {order.status === "in-progress" && (
                             <>
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusChange(order.id, "completed")}
-                                disabled={!!processingAction}
-                              >
+                              <DropdownMenuItem onClick={() => handleStatusChange(order.id, "completed")}>
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Mark as Completed
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleStatusChange(order.id, "pending")}
-                                disabled={!!processingAction}
-                              >
+                              <DropdownMenuItem onClick={() => handleStatusChange(order.id, "pending")}>
                                 <Pause className="mr-2 h-4 w-4" />
                                 Pause Production
                               </DropdownMenuItem>
@@ -468,10 +400,7 @@ const OrderManagement = () => {
                           )}
                           
                           {order.status !== "cancelled" && (
-                            <DropdownMenuItem 
-                              onClick={() => handleStatusChange(order.id, "cancelled")}
-                              disabled={!!processingAction}
-                            >
+                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, "cancelled")}>
                               <X className="mr-2 h-4 w-4" />
                               Cancel Order
                             </DropdownMenuItem>
@@ -479,7 +408,6 @@ const OrderManagement = () => {
                           
                           <DropdownMenuItem 
                             onClick={() => handleDelete(order.id)}
-                            disabled={!!processingAction}
                             className="text-red-500 focus:text-red-500"
                           >
                             <Trash className="mr-2 h-4 w-4" />
@@ -504,18 +432,10 @@ const OrderManagement = () => {
           </DialogHeader>
           <p>Are you sure you want to delete this order? This action cannot be undone.</p>
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setConfirmDeleteId(null)}
-              disabled={!!processingAction}
-            >
+            <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={confirmDelete}
-              disabled={!!processingAction}
-            >
+            <Button variant="destructive" onClick={confirmDelete}>
               Delete
             </Button>
           </DialogFooter>
