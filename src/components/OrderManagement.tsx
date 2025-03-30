@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Table,
@@ -18,7 +19,7 @@ import { useOrder } from "@/contexts/OrderContext";
 import { Badge } from "@/components/ui/badge";
 import { Order, OrderStatus } from "@/types/order";
 import { formatDuration } from "@/lib/calculateProductionTime";
-import { format } from "date-fns";
+import { format, differenceInMinutes } from "date-fns";
 import {
   CheckCircle,
   Clock,
@@ -51,6 +52,18 @@ const OrderManagement = () => {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const isMobile = useIsMobile();
+
+  // Calculate current production time for in-progress orders
+  const getActualProductionTime = (order: Order): number => {
+    let time = order.productionTimeAccumulated || 0;
+    
+    // If order is in progress, add the current running time
+    if (order.status === 'in-progress' && order.productionStartTime) {
+      time += differenceInMinutes(new Date(), new Date(order.productionStartTime));
+    }
+    
+    return time;
+  };
 
   const sortedOrders = [...orders].sort((a, b) => {
     // First by status - pending and in-progress first
@@ -179,8 +192,11 @@ const OrderManagement = () => {
             ))}
           </div>
           <div>
-            <p className="font-medium text-muted-foreground">Production Time:</p>
+            <p className="font-medium text-muted-foreground">Est. Production Time:</p>
             <p className="text-foreground">{formatDuration(order.totalProductionTime)}</p>
+            
+            <p className="font-medium text-muted-foreground mt-1">Actual Production Time:</p>
+            <p className="text-foreground">{formatDuration(getActualProductionTime(order))}</p>
             
             <p className="font-medium text-muted-foreground mt-1">Est. Completion:</p>
             <p className="text-foreground">{format(new Date(order.estimatedCompletionDate), "MMM d, h:mm a")}</p>
@@ -306,7 +322,8 @@ const OrderManagement = () => {
                 <TableHead>Customer</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Production Time</TableHead>
+                <TableHead>Est. Time</TableHead>
+                <TableHead>Actual Time</TableHead>
                 <TableHead>Est. Completion</TableHead>
                 <TableHead>Queue</TableHead>
                 <TableHead>Actions</TableHead>
@@ -315,7 +332,7 @@ const OrderManagement = () => {
             <TableBody>
               {sortedOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No orders found
                   </TableCell>
                 </TableRow>
@@ -339,6 +356,7 @@ const OrderManagement = () => {
                     </TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell>{formatDuration(order.totalProductionTime)}</TableCell>
+                    <TableCell>{formatDuration(getActualProductionTime(order))}</TableCell>
                     <TableCell>
                       {format(new Date(order.estimatedCompletionDate), "MMM d, h:mm a")}
                     </TableCell>

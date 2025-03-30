@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Order, ProductionSettings, OrderStatus } from "@/types/order";
 import { calculateEstimatedCompletionDate, calculateProductionTime, getTotalQueuedProductionTime } from "@/lib/calculateProductionTime";
@@ -9,7 +8,7 @@ import { useAuth } from "./AuthContext";
 interface OrderContextValue {
   orders: Order[];
   settings: ProductionSettings;
-  addOrder: (order: Omit<Order, "id" | "createdAt" | "updatedAt" | "queuePosition">) => Promise<void>;
+  addOrder: (order: Omit<Order, "id" | "createdAt" | "updatedAt" | "queuePosition" | "productionTimeAccumulated" | "productionStartTime">) => Promise<void>;
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
   updateOrderPosition: (id: string, newPosition: number) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
@@ -53,7 +52,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  // Load data from Supabase when user changes
   useEffect(() => {
     if (!user) {
       setOrders([]);
@@ -65,7 +63,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch settings
         const { data: settingsData, error: settingsError } = await supabase
           .from('production_settings')
           .select('*')
@@ -75,7 +72,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         if (settingsError) throw settingsError;
 
         if (settingsData) {
-          // Transform database settings to our app format
           setSettings({
             items: [
               {
@@ -95,7 +91,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
             workingDays: settingsData.working_days,
           });
         } else {
-          // Create default settings if none exist
           const { error: insertError } = await supabase
             .from('production_settings')
             .insert({
@@ -113,7 +108,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           if (insertError) throw insertError;
         }
 
-        // Fetch orders
         const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
           .select('*')
@@ -123,7 +117,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         if (ordersError) throw ordersError;
 
         if (ordersData) {
-          // Transform database orders to our app format
           const transformedOrders: Order[] = ordersData.map(order => ({
             id: order.id,
             customerName: order.customer_name,
@@ -148,6 +141,8 @@ export function OrderProvider({ children }: { children: ReactNode }) {
             queuePosition: order.queue_position,
             createdAt: new Date(order.created_at),
             updatedAt: new Date(order.updated_at),
+            productionStartTime: order.production_start_time ? new Date(order.production_start_time) : undefined,
+            productionTimeAccumulated: order.production_time_accumulated || 0,
           }));
 
           setOrders(transformedOrders);
@@ -169,17 +164,14 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     item1Quantity: number,
     item2Quantity: number
   ) => {
-    // Calculate production time for the new order
     const totalProductionTime = calculateProductionTime(
       item1Quantity,
       item2Quantity,
       settings
     );
 
-    // Calculate the total production time of all queued orders
     const queuedProductionTime = getTotalQueuedProductionTime(orders);
 
-    // Calculate the estimated completion date
     const estimatedCompletionDate = calculateEstimatedCompletionDate(
       totalProductionTime,
       queuedProductionTime,
@@ -192,7 +184,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const addOrder = async (orderData: Omit<Order, "id" | "createdAt" | "updatedAt" | "queuePosition">) => {
+  const addOrder = async (orderData: Omit<Order, "id" | "createdAt" | "updatedAt" | "queuePosition" | "productionTimeAccumulated" | "productionStartTime">) => {
     if (!user) {
       toast.error("You must be logged in to add orders");
       return;
@@ -201,7 +193,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     try {
       const queuePosition = orders.filter(o => o.status === 'pending' || o.status === 'in-progress').length + 1;
       
-      // Extract quantities for DB storage
       const item1 = orderData.items.find(item => item.id === "1");
       const item2 = orderData.items.find(item => item.id === "2");
       
@@ -217,6 +208,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           total_production_time: orderData.totalProductionTime,
           estimated_completion_date: orderData.estimatedCompletionDate.toISOString(),
           queue_position: queuePosition,
+          production_time_accumulated: 0,
         })
         .select()
         .single();
@@ -235,6 +227,8 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           queuePosition: data.queue_position,
           createdAt: new Date(data.created_at),
           updatedAt: new Date(data.updated_at),
+          productionTimeAccumulated: data.production_time_accumulated || 0,
+          productionStartTime: data.production_start_time ? new Date(data.production_start_time) : undefined,
         };
         
         setOrders(prev => [...prev, newOrder]);
@@ -261,7 +255,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         
       if (error) throw error;
       
-      // Update local state
       setOrders(prev => {
         const updatedOrders = prev.map(order =>
           order.id === id
@@ -294,8 +287,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         
       if (error) throw error;
       
-      // Local state will be updated by the database trigger
-      // But update it here for immediate feedback
       setOrders(prev => {
         const activeOrders = prev.filter(
           (o) => o.status === "pending" || o.status === "in-progress"
@@ -304,27 +295,22 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           (o) => o.status !== "pending" && o.status !== "in-progress"
         );
         
-        // Find the order to be moved
         const orderToMove = activeOrders.find((o) => o.id === id);
         
         if (!orderToMove) {
           return prev;
         }
         
-        // Remove the order from its current position
         const filteredOrders = activeOrders.filter((o) => o.id !== id);
         
-        // Ensure the new position is within bounds
         const boundedPosition = Math.max(1, Math.min(newPosition, filteredOrders.length + 1));
         
-        // Insert the order at the new position
         filteredOrders.splice(boundedPosition - 1, 0, {
           ...orderToMove,
           queuePosition: boundedPosition,
           updatedAt: new Date(),
         });
         
-        // Update queue positions for all active orders
         const reorderedOrders = filteredOrders.map((order, index) => ({
           ...order,
           queuePosition: index + 1,
@@ -351,7 +337,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         
       if (error) throw error;
       
-      // Update local state
       setOrders(prev => prev.filter(order => order.id !== id));
       toast.success("Order deleted");
     } catch (error: any) {

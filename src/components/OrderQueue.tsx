@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrder } from "@/contexts/OrderContext";
 import { formatDuration } from "@/lib/calculateProductionTime";
-import { format } from "date-fns";
+import { differenceInMinutes, format } from "date-fns";
 import { Clock, Play } from "lucide-react";
 
 const OrderQueue = () => {
@@ -15,6 +15,18 @@ const OrderQueue = () => {
 
   // Get the current in-progress order if any
   const inProgressOrder = orders.find((order) => order.status === "in-progress");
+
+  // Calculate current production time for in-progress orders
+  const getActualProductionTime = (order: any): number => {
+    let time = order.productionTimeAccumulated || 0;
+    
+    // If order is in progress, add the current running time
+    if (order.status === 'in-progress' && order.productionStartTime) {
+      time += differenceInMinutes(new Date(), new Date(order.productionStartTime));
+    }
+    
+    return time;
+  };
 
   if (loading) {
     return (
@@ -55,11 +67,11 @@ const OrderQueue = () => {
               <div className="flex justify-between mb-1">
                 <span className="font-medium">{inProgressOrder.customerName}</span>
                 <span className="text-sm text-muted-foreground">
-                  {formatDuration(inProgressOrder.totalProductionTime)}
+                  {formatDuration(getActualProductionTime(inProgressOrder))} / {formatDuration(inProgressOrder.totalProductionTime)}
                 </span>
               </div>
               <div className="text-sm text-muted-foreground mb-2">
-                {inProgressOrder.items.map((item) => (
+                {inProgressOrder.items.map((item: any) => (
                   <span key={item.id} className="mr-2">
                     {item.quantity}x {item.name}
                   </span>

@@ -77,6 +77,8 @@ describe("OrderQueue Component", () => {
         queuePosition: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
+        productionTimeAccumulated: 0,
+        productionStartTime: undefined,
       },
     ];
 
@@ -110,6 +112,8 @@ describe("OrderQueue Component", () => {
       queuePosition: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
+      productionTimeAccumulated: 15,
+      productionStartTime: new Date(),
     };
 
     const pendingOrder = {
@@ -125,6 +129,8 @@ describe("OrderQueue Component", () => {
       queuePosition: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
+      productionTimeAccumulated: 0,
+      productionStartTime: undefined,
     };
 
     (useOrder as any).mockReturnValue({
