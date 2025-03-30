@@ -1,6 +1,13 @@
-
 import { Link, useLocation } from "react-router-dom";
-import { Clock, ClipboardList, LineChart, LogOut, Menu, Settings, Calendar } from "lucide-react";
+import {
+  Clock,
+  ClipboardList,
+  LineChart,
+  LogOut,
+  Menu,
+  Settings,
+  Calendar,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -56,7 +63,7 @@ const Navbar = () => {
           <span>Dashboard</span>
         </div>
       </Link>
-      <Link
+      {/* <Link
         to="/calendar"
         className={`px-3 py-2 rounded-md ${
           isActive("/calendar")
@@ -68,7 +75,7 @@ const Navbar = () => {
           <Calendar className="h-4 w-4" />
           <span>Calendar</span>
         </div>
-      </Link>
+      </Link> */}
       <Link
         to="/settings"
         className={`px-3 py-2 rounded-md ${
@@ -92,10 +99,12 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <Clock className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">OrderTimer</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                OrderTimer
+              </span>
             </Link>
           </div>
-          
+
           {isMobile ? (
             <Sheet>
               <SheetTrigger asChild>
@@ -107,8 +116,8 @@ const Navbar = () => {
                 <div className="mt-6 flex flex-col space-y-3">
                   <NavLinks />
                   {user && (
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       onClick={() => signOut()}
                       className="justify-start mt-4"
                     >
@@ -123,9 +132,9 @@ const Navbar = () => {
             <div className="flex items-center space-x-1">
               <NavLinks />
               {user && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => signOut()}
                   className="ml-2"
                 >
