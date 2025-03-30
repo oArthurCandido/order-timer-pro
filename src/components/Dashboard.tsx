@@ -32,28 +32,31 @@ const Dashboard = () => {
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
   const inProgressOrders = orders.filter((o) => o.status === "in-progress").length;
 
-  // Calculate actual production time based on start and completion dates
-  // For completed orders, we use the difference between updated_at (completion) and created_at (start)
-  // For in-progress orders, we use the difference between now and created_at
-  const actualProductionTimeByOrder = orders
-    .filter(o => o.status === "completed" || o.status === "in-progress")
-    .map(order => {
-      const startTime = new Date(order.createdAt);
-      const endTime = order.status === "completed" ? new Date(order.updatedAt) : new Date();
-      const productionTime = differenceInMinutes(endTime, startTime);
-      return {
-        ...order,
-        actualProductionTime: productionTime
-      };
-    });
+  // Calculate actual production time based on accumulated time and current progress
+  const getActualProductionTime = (order: any): number => {
+    let time = order.productionTimeAccumulated || 0;
+    
+    // If order is in progress, add the current running time
+    if (order.status === 'in-progress' && order.productionStartTime) {
+      time += differenceInMinutes(new Date(), new Date(order.productionStartTime));
+    }
+    
+    return time;
+  };
+
+  // Use actual production time for calculations
+  const ordersWithActualTime = orders.map(order => ({
+    ...order,
+    actualProductionTime: getActualProductionTime(order)
+  }));
   
-  const totalActualProductionTime = actualProductionTimeByOrder.reduce(
-    (total, order) => total + order.actualProductionTime, 0
-  );
+  const totalActualProductionTime = ordersWithActualTime
+    .filter(o => o.status === "completed" || o.status === "in-progress")
+    .reduce((total, order) => total + order.actualProductionTime, 0);
   
   const averageActualProductionTime = 
-    actualProductionTimeByOrder.length > 0
-      ? Math.round(totalActualProductionTime / actualProductionTimeByOrder.length)
+    ordersWithActualTime.filter(o => o.status === "completed").length > 0
+      ? Math.round(totalActualProductionTime / ordersWithActualTime.filter(o => o.status === "completed").length)
       : 0;
 
   // Total items produced
@@ -88,7 +91,8 @@ const Dashboard = () => {
   }).reverse();
 
   // Production time by product using actual time
-  const productionByProduct = actualProductionTimeByOrder
+  const productionByProduct = ordersWithActualTime
+    .filter(order => order.status === "completed" || order.status === "in-progress")
     .flatMap((order) => 
       order.items.map(item => ({
         name: item.name,
@@ -140,7 +144,7 @@ const Dashboard = () => {
               {averageActualProductionTime} min
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Based on actual completion times
+              Based on actual production time
             </p>
           </CardContent>
         </Card>

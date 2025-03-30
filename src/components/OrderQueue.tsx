@@ -2,11 +2,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrder } from "@/contexts/OrderContext";
 import { formatDuration } from "@/lib/calculateProductionTime";
-import { format } from "date-fns";
+import { differenceInMinutes, format } from "date-fns";
 import { Clock, Play } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const OrderQueue = () => {
   const { orders, updateOrderStatus, loading } = useOrder();
+  const [localLoading, setLocalLoading] = useState(false);
 
   // Filter for pending orders and sort by queue position
   const pendingOrders = orders
@@ -16,7 +19,45 @@ const OrderQueue = () => {
   // Get the current in-progress order if any
   const inProgressOrder = orders.find((order) => order.status === "in-progress");
 
-  if (loading) {
+  // Calculate current production time for in-progress orders
+  const getActualProductionTime = (order: any): number => {
+    let time = order.productionTimeAccumulated || 0;
+    
+    // If order is in progress, add the current running time
+    if (order.status === 'in-progress' && order.productionStartTime) {
+      time += differenceInMinutes(new Date(), new Date(order.productionStartTime));
+    }
+    
+    return time;
+  };
+
+  // Force re-render every minute to update production times
+  useEffect(() => {
+    if (inProgressOrder) {
+      const timer = setInterval(() => {
+        // This empty setState will trigger a re-render
+        setLocalLoading(prev => prev);
+      }, 60000); // every minute
+      
+      return () => clearInterval(timer);
+    }
+  }, [inProgressOrder]);
+
+  const handleStartNextOrder = async () => {
+    if (pendingOrders.length === 0) return;
+    
+    try {
+      setLocalLoading(true);
+      await updateOrderStatus(pendingOrders[0].id, "in-progress");
+    } catch (error) {
+      console.error("Error starting order:", error);
+      toast.error("Failed to start the order. Please try again.");
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  if (loading || localLoading) {
     return (
       <Card className="card-gradient">
         <CardHeader>
@@ -55,11 +96,11 @@ const OrderQueue = () => {
               <div className="flex justify-between mb-1">
                 <span className="font-medium">{inProgressOrder.customerName}</span>
                 <span className="text-sm text-muted-foreground">
-                  {formatDuration(inProgressOrder.totalProductionTime)}
+                  {formatDuration(getActualProductionTime(inProgressOrder))} / {formatDuration(inProgressOrder.totalProductionTime)}
                 </span>
               </div>
               <div className="text-sm text-muted-foreground mb-2">
-                {inProgressOrder.items.map((item) => (
+                {inProgressOrder.items.map((item: any) => (
                   <span key={item.id} className="mr-2">
                     {item.quantity}x {item.name}
                   </span>
@@ -75,8 +116,9 @@ const OrderQueue = () => {
             <div className="flex justify-between items-center p-3 border border-dashed border-primary/40 rounded-lg">
               <span className="text-sm">No order in progress</span>
               <button
-                onClick={() => updateOrderStatus(pendingOrders[0].id, "in-progress")}
-                className="text-xs px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded transition-colors"
+                onClick={handleStartNextOrder}
+                disabled={loading || localLoading}
+                className="text-xs px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded transition-colors disabled:opacity-50"
               >
                 Start Next Order
               </button>

@@ -18,6 +18,8 @@ export type Database = {
           id: string
           item1_quantity: number
           item2_quantity: number
+          production_start_time: string | null
+          production_time_accumulated: number | null
           queue_position: number
           status: string
           total_production_time: number
@@ -32,6 +34,8 @@ export type Database = {
           id?: string
           item1_quantity?: number
           item2_quantity?: number
+          production_start_time?: string | null
+          production_time_accumulated?: number | null
           queue_position: number
           status?: string
           total_production_time: number
@@ -46,6 +50,8 @@ export type Database = {
           id?: string
           item1_quantity?: number
           item2_quantity?: number
+          production_start_time?: string | null
+          production_time_accumulated?: number | null
           queue_position?: number
           status?: string
           total_production_time?: number

@@ -14,11 +14,13 @@ export interface Order {
   customerEmail: string;
   items: OrderItem[];
   status: OrderStatus;
-  totalProductionTime: number; // in minutes
+  totalProductionTime: number; // in minutes (estimated time)
   estimatedCompletionDate: Date;
   queuePosition: number;
   createdAt: Date;
   updatedAt: Date;
+  productionStartTime?: Date; // new field for tracking when production started
+  productionTimeAccumulated: number; // new field for tracking actual production time
 }
 
 export interface ProductionSettings {
