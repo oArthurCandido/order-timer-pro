@@ -1,7 +1,16 @@
-
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
 import { Order, ProductionSettings, OrderStatus } from "@/types/order";
-import { calculateEstimatedCompletionDate, calculateProductionTime, getTotalQueuedProductionTime } from "@/lib/calculateProductionTime";
+import {
+  calculateEstimatedCompletionDate,
+  calculateProductionTime,
+  getTotalQueuedProductionTime,
+} from "@/lib/calculateProductionTime";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
@@ -9,7 +18,17 @@ import { useAuth } from "./AuthContext";
 interface OrderContextValue {
   orders: Order[];
   settings: ProductionSettings;
-  addOrder: (order: Omit<Order, "id" | "createdAt" | "updatedAt" | "queuePosition" | "productionTimeAccumulated" | "productionStartTime">) => Promise<void>;
+  addOrder: (
+    order: Omit<
+      Order,
+      | "id"
+      | "createdAt"
+      | "updatedAt"
+      | "queuePosition"
+      | "productionTimeAccumulated"
+      | "productionStartTime"
+    >
+  ) => Promise<void>;
   updateOrderStatus: (id: string, status: OrderStatus) => Promise<void>;
   updateOrderPosition: (id: string, newPosition: number) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
@@ -65,9 +84,9 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       try {
         const { data: settingsData, error: settingsError } = await supabase
-          .from('production_settings')
-          .select('*')
-          .eq('user_id', user.id)
+          .from("production_settings")
+          .select("*")
+          .eq("user_id", user.id)
           .maybeSingle();
 
         if (settingsError) throw settingsError;
@@ -93,13 +112,15 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           });
         } else {
           const { error: insertError } = await supabase
-            .from('production_settings')
+            .from("production_settings")
             .insert({
               user_id: user.id,
               item1_name: defaultSettings.items[0].name,
-              item1_production_time: defaultSettings.items[0].productionTimePerUnit,
+              item1_production_time:
+                defaultSettings.items[0].productionTimePerUnit,
               item2_name: defaultSettings.items[1].name,
-              item2_production_time: defaultSettings.items[1].productionTimePerUnit,
+              item2_production_time:
+                defaultSettings.items[1].productionTimePerUnit,
               working_hours_per_day: defaultSettings.workingHoursPerDay,
               start_time: defaultSettings.startTime,
               end_time: defaultSettings.endTime,
@@ -110,31 +131,41 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         }
 
         const { data: ordersData, error: ordersError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('queue_position', { ascending: true });
+          .from("orders")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("queue_position", { ascending: true });
 
         if (ordersError) throw ordersError;
 
         if (ordersData) {
-          const transformedOrders: Order[] = ordersData.map(order => ({
+          const transformedOrders: Order[] = ordersData.map((order) => ({
             id: order.id,
             customerName: order.customer_name,
             customerEmail: order.customer_email,
             items: [
-              ...(order.item1_quantity > 0 ? [{
-                id: "1",
-                name: settings.items[0].name,
-                quantity: order.item1_quantity,
-                productionTimePerUnit: settings.items[0].productionTimePerUnit,
-              }] : []),
-              ...(order.item2_quantity > 0 ? [{
-                id: "2",
-                name: settings.items[1].name,
-                quantity: order.item2_quantity,
-                productionTimePerUnit: settings.items[1].productionTimePerUnit,
-              }] : []),
+              ...(order.item1_quantity > 0
+                ? [
+                    {
+                      id: "1",
+                      name: settings.items[0].name,
+                      quantity: order.item1_quantity,
+                      productionTimePerUnit:
+                        settings.items[0].productionTimePerUnit,
+                    },
+                  ]
+                : []),
+              ...(order.item2_quantity > 0
+                ? [
+                    {
+                      id: "2",
+                      name: settings.items[1].name,
+                      quantity: order.item2_quantity,
+                      productionTimePerUnit:
+                        settings.items[1].productionTimePerUnit,
+                    },
+                  ]
+                : []),
             ],
             status: order.status as OrderStatus,
             totalProductionTime: order.total_production_time,
@@ -142,15 +173,17 @@ export function OrderProvider({ children }: { children: ReactNode }) {
             queuePosition: order.queue_position,
             createdAt: new Date(order.created_at),
             updatedAt: new Date(order.updated_at),
-            productionStartTime: order.production_start_time ? new Date(order.production_start_time) : undefined,
+            productionStartTime: order.production_start_time
+              ? new Date(order.production_start_time)
+              : undefined,
             productionTimeAccumulated: order.production_time_accumulated || 0,
           }));
 
           setOrders(transformedOrders);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load your data. Please try again.');
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load your data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -185,7 +218,17 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const addOrder = async (orderData: Omit<Order, "id" | "createdAt" | "updatedAt" | "queuePosition" | "productionTimeAccumulated" | "productionStartTime">) => {
+  const addOrder = async (
+    orderData: Omit<
+      Order,
+      | "id"
+      | "createdAt"
+      | "updatedAt"
+      | "queuePosition"
+      | "productionTimeAccumulated"
+      | "productionStartTime"
+    >
+  ) => {
     if (!user) {
       toast.error("You must be logged in to add orders");
       return;
@@ -193,13 +236,16 @@ export function OrderProvider({ children }: { children: ReactNode }) {
 
     try {
       // Calculate next queue position
-      const queuePosition = orders.filter(o => o.status === 'pending' || o.status === 'in-progress').length + 1;
-      
-      const item1 = orderData.items.find(item => item.id === "1");
-      const item2 = orderData.items.find(item => item.id === "2");
-      
+      const queuePosition =
+        orders.filter(
+          (o) => o.status === "pending" || o.status === "in-progress"
+        ).length + 1;
+
+      const item1 = orderData.items.find((item) => item.id === "1");
+      const item2 = orderData.items.find((item) => item.id === "2");
+
       const { data, error } = await supabase
-        .from('orders')
+        .from("orders")
         .insert({
           user_id: user.id,
           customer_name: orderData.customerName,
@@ -208,15 +254,16 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           item2_quantity: item2?.quantity || 0,
           status: orderData.status,
           total_production_time: orderData.totalProductionTime,
-          estimated_completion_date: orderData.estimatedCompletionDate.toISOString(),
+          estimated_completion_date:
+            orderData.estimatedCompletionDate.toISOString(),
           queue_position: queuePosition,
           production_time_accumulated: 0,
         })
         .select()
         .single();
-        
+
       if (error) throw error;
-      
+
       if (data) {
         // Manually fetch the updated order list instead of trying to update it in memory
         await fetchOrders();
@@ -231,34 +278,44 @@ export function OrderProvider({ children }: { children: ReactNode }) {
   // New function to fetch orders - reused to avoid code duplication
   const fetchOrders = async () => {
     if (!user) return;
-    
+
     try {
       const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('queue_position', { ascending: true });
-        
+        .from("orders")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("queue_position", { ascending: true });
+
       if (error) throw error;
-      
+
       if (data) {
-        const transformedOrders: Order[] = data.map(order => ({
+        const transformedOrders: Order[] = data.map((order) => ({
           id: order.id,
           customerName: order.customer_name,
           customerEmail: order.customer_email,
           items: [
-            ...(order.item1_quantity > 0 ? [{
-              id: "1",
-              name: settings.items[0].name,
-              quantity: order.item1_quantity,
-              productionTimePerUnit: settings.items[0].productionTimePerUnit,
-            }] : []),
-            ...(order.item2_quantity > 0 ? [{
-              id: "2",
-              name: settings.items[1].name,
-              quantity: order.item2_quantity,
-              productionTimePerUnit: settings.items[1].productionTimePerUnit,
-            }] : []),
+            ...(order.item1_quantity > 0
+              ? [
+                  {
+                    id: "1",
+                    name: settings.items[0].name,
+                    quantity: order.item1_quantity,
+                    productionTimePerUnit:
+                      settings.items[0].productionTimePerUnit,
+                  },
+                ]
+              : []),
+            ...(order.item2_quantity > 0
+              ? [
+                  {
+                    id: "2",
+                    name: settings.items[1].name,
+                    quantity: order.item2_quantity,
+                    productionTimePerUnit:
+                      settings.items[1].productionTimePerUnit,
+                  },
+                ]
+              : []),
           ],
           status: order.status as OrderStatus,
           totalProductionTime: order.total_production_time,
@@ -266,7 +323,9 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           queuePosition: order.queue_position,
           createdAt: new Date(order.created_at),
           updatedAt: new Date(order.updated_at),
-          productionStartTime: order.production_start_time ? new Date(order.production_start_time) : undefined,
+          productionStartTime: order.production_start_time
+            ? new Date(order.production_start_time)
+            : undefined,
           productionTimeAccumulated: order.production_time_accumulated || 0,
         }));
 
@@ -278,23 +337,51 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // const updateOrderStatus = async (id: string, status: OrderStatus) => {
+  //   if (!user) return;
+
+  //   try {
+  //     // Simplified update - only update the status and let DB triggers handle the rest
+  //     const { error } = await supabase
+  //       .from("orders")
+  //       .update({ status })
+  //       .eq("id", id)
+  //       .eq("user_id", user.id);
+
+  //     if (error) throw error;
+
+  //     // Fetch the updated data from the server instead of trying to calculate it
+  //     // With:
+  //     const { data } = await supabase
+  //       .from("orders")
+  //       .select("*")
+  //       .eq("user_id", user.id);
+  //     console.log("Updated order:", data);
+  //     toast.success(`Order status updated to ${status}`);
+  //   } catch (error: any) {
+  //     console.error("Error updating order status:", error);
+  //     toast.error(error.message || "Failed to update order status");
+  //   }
+  // };
+
   const updateOrderStatus = async (id: string, status: OrderStatus) => {
     if (!user) return;
-    
+
     try {
-      // Simplified update - only update the status and let DB triggers handle the rest
       const { error } = await supabase
-        .from('orders')
+        .from("orders")
         .update({ status })
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
+        .eq("id", id)
+        .eq("user_id", user.id);
+
       if (error) throw error;
-      
-      // Fetch the updated data from the server instead of trying to calculate it
-      await fetchOrders();
+
+      // Add a small delay to break any potential recursive loop
+      setTimeout(() => {
+        fetchOrders();
+      }, 100);
+
       toast.success(`Order status updated to ${status}`);
-      
     } catch (error: any) {
       console.error("Error updating order status:", error);
       toast.error(error.message || "Failed to update order status");
@@ -303,21 +390,20 @@ export function OrderProvider({ children }: { children: ReactNode }) {
 
   const updateOrderPosition = async (id: string, newPosition: number) => {
     if (!user) return;
-    
+
     try {
       // Simplified position update
       const { error } = await supabase
-        .from('orders')
+        .from("orders")
         .update({ queue_position: newPosition })
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
+        .eq("id", id)
+        .eq("user_id", user.id);
+
       if (error) throw error;
-      
+
       // Fetch fresh data instead of trying to modify it in memory
       await fetchOrders();
       toast.success("Order position updated");
-      
     } catch (error: any) {
       console.error("Error updating order position:", error);
       toast.error(error.message || "Failed to update order position");
@@ -326,23 +412,22 @@ export function OrderProvider({ children }: { children: ReactNode }) {
 
   const deleteOrder = async (id: string) => {
     if (!user) return;
-    
+
     try {
       const { error } = await supabase
-        .from('orders')
+        .from("orders")
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
+        .eq("id", id)
+        .eq("user_id", user.id);
+
       if (error) throw error;
-      
+
       // Just filter the deleted order from local state
-      setOrders(prev => prev.filter(order => order.id !== id));
+      setOrders((prev) => prev.filter((order) => order.id !== id));
       toast.success("Order deleted");
-      
+
       // Then refresh the queue positions
       await fetchOrders();
-      
     } catch (error: any) {
       console.error("Error deleting order:", error);
       toast.error(error.message || "Failed to delete order");
@@ -351,10 +436,10 @@ export function OrderProvider({ children }: { children: ReactNode }) {
 
   const updateSettings = async (newSettings: ProductionSettings) => {
     if (!user) return;
-    
+
     try {
       const { error } = await supabase
-        .from('production_settings')
+        .from("production_settings")
         .update({
           item1_name: newSettings.items[0].name,
           item1_production_time: newSettings.items[0].productionTimePerUnit,
@@ -365,10 +450,10 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           end_time: newSettings.endTime,
           working_days: newSettings.workingDays,
         })
-        .eq('user_id', user.id);
-        
+        .eq("user_id", user.id);
+
       if (error) throw error;
-      
+
       setSettings(newSettings);
       toast.success("Production settings updated");
     } catch (error: any) {
@@ -389,7 +474,9 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     loading,
   };
 
-  return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
+  return (
+    <OrderContext.Provider value={value}>{children}</OrderContext.Provider>
+  );
 }
 
 export function useOrder() {

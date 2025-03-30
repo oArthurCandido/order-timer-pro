@@ -1,0 +1,57 @@
+[
+  {
+    "function_name": "key_encrypt_secret_raw_key",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION pgsodium.key_encrypt_secret_raw_key()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\n\t\tBEGIN\n\t\t        new.raw_key = CASE WHEN new.raw_key IS NULL THEN NULL ELSE\n\t\t\tCASE WHEN new.parent_key IS NULL THEN NULL ELSE\n\t\t\t\t\tpgsodium.crypto_aead_det_encrypt(new.raw_key::bytea, pg_catalog.convert_to((new.id::text || new.associated_data::text)::text, 'utf8'),\n\t\t\tnew.parent_key::uuid,\n\t\t\tnew.raw_key_nonce\n\t\t  ) END END;\n\t\tRETURN new;\n\t\tEND;\n\t\t$function$\n"
+  },
+  {
+    "function_name": "secrets_encrypt_secret_secret",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION vault.secrets_encrypt_secret_secret()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\n\t\tBEGIN\n\t\t        new.secret = CASE WHEN new.secret IS NULL THEN NULL ELSE\n\t\t\tCASE WHEN new.key_id IS NULL THEN NULL ELSE pg_catalog.encode(\n\t\t\t  pgsodium.crypto_aead_det_encrypt(\n\t\t\t\tpg_catalog.convert_to(new.secret, 'utf8'),\n\t\t\t\tpg_catalog.convert_to((new.id::text || new.description::text || new.created_at::text || new.updated_at::text)::text, 'utf8'),\n\t\t\t\tnew.key_id::uuid,\n\t\t\t\tnew.nonce\n\t\t\t  ),\n\t\t\t\t'base64') END END;\n\t\tRETURN new;\n\t\tEND;\n\t\t$function$\n"
+  },
+  {
+    "function_name": "update_updated_at_column",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION storage.update_updated_at_column()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    NEW.updated_at = now();\n    RETURN NEW; \nEND;\n$function$\n"
+  },
+  {
+    "function_name": "subscription_check_filters",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION realtime.subscription_check_filters()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\n    /*\n    Validates that the user defined filters for a subscription:\n    - refer to valid columns that the claimed role may access\n    - values are coercable to the correct column type\n    */\n    declare\n        col_names text[] = coalesce(\n                array_agg(c.column_name order by c.ordinal_position),\n                '{}'::text[]\n            )\n            from\n                information_schema.columns c\n            where\n                format('%I.%I', c.table_schema, c.table_name)::regclass = new.entity\n                and pg_catalog.has_column_privilege(\n                    (new.claims ->> 'role'),\n                    format('%I.%I', c.table_schema, c.table_name)::regclass,\n                    c.column_name,\n                    'SELECT'\n                );\n        filter realtime.user_defined_filter;\n        col_type regtype;\n\n        in_val jsonb;\n    begin\n        for filter in select * from unnest(new.filters) loop\n            -- Filtered column is valid\n            if not filter.column_name = any(col_names) then\n                raise exception 'invalid column for filter %', filter.column_name;\n            end if;\n\n            -- Type is sanitized and safe for string interpolation\n            col_type = (\n                select atttypid::regtype\n                from pg_catalog.pg_attribute\n                where attrelid = new.entity\n                      and attname = filter.column_name\n            );\n            if col_type is null then\n                raise exception 'failed to lookup type for column %', filter.column_name;\n            end if;\n\n            -- Set maximum number of entries for in filter\n            if filter.op = 'in'::realtime.equality_op then\n                in_val = realtime.cast(filter.value, (col_type::text || '[]')::regtype);\n                if coalesce(jsonb_array_length(in_val), 0) > 100 then\n                    raise exception 'too many values for `in` filter. Maximum 100';\n                end if;\n            else\n                -- raises an exception if value is not coercable to type\n                perform realtime.cast(filter.value, col_type);\n            end if;\n\n        end loop;\n\n        -- Apply consistent order to filters so the unique constraint on\n        -- (subscription_id, entity, filters) can't be tricked by a different filter order\n        new.filters = coalesce(\n            array_agg(f order by f.column_name, f.op, f.value),\n            '{}'\n        ) from unnest(new.filters) f;\n\n        return new;\n    end;\n    $function$\n"
+  },
+  {
+    "function_name": "handle_new_user",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nBEGIN\n  INSERT INTO public.profiles (id, full_name, email)\n  VALUES (\n    NEW.id,\n    NEW.raw_user_meta_data->>'full_name',\n    NEW.email\n  );\n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "function_name": "reorder_queue_positions",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION public.reorder_queue_positions()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nBEGIN\n  -- Only reorder if the status is pending or in-progress\n  IF NEW.status IN ('pending', 'in-progress') THEN\n    -- If queue position has changed\n    IF OLD.queue_position != NEW.queue_position THEN\n      -- Move other orders accordingly\n      IF OLD.queue_position > NEW.queue_position THEN\n        -- Moving up in the queue\n        UPDATE public.orders\n        SET queue_position = queue_position + 1,\n            updated_at = NOW()\n        WHERE user_id = NEW.user_id\n          AND id != NEW.id\n          AND status IN ('pending', 'in-progress')\n          AND queue_position >= NEW.queue_position\n          AND queue_position < OLD.queue_position;\n      ELSE\n        -- Moving down in the queue\n        UPDATE public.orders\n        SET queue_position = queue_position - 1,\n            updated_at = NOW()\n        WHERE user_id = NEW.user_id\n          AND id != NEW.id\n          AND status IN ('pending', 'in-progress')\n          AND queue_position <= NEW.queue_position\n          AND queue_position > OLD.queue_position;\n      END IF;\n    END IF;\n  END IF;\n  \n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "function_name": "handle_order_delete",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION public.handle_order_delete()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nBEGIN\n  -- Only reorder if the deleted order was pending or in-progress\n  IF OLD.status IN ('pending', 'in-progress') THEN\n    -- Decrease queue position for all orders after the deleted one\n    UPDATE public.orders\n    SET queue_position = queue_position - 1,\n        updated_at = NOW()\n    WHERE user_id = OLD.user_id\n      AND status IN ('pending', 'in-progress')\n      AND queue_position > OLD.queue_position;\n  END IF;\n  \n  RETURN OLD;\nEND;\n$function$\n"
+  },
+  {
+    "function_name": "update_production_time_on_pause",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION public.update_production_time_on_pause()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  -- Only calculate accumulated time when changing from in-progress to pending (pausing)\n  IF OLD.status = 'in-progress' AND NEW.status = 'pending' AND OLD.production_start_time IS NOT NULL THEN\n    -- Add elapsed time since production start to the accumulated time\n    NEW.production_time_accumulated = OLD.production_time_accumulated + \n      EXTRACT(EPOCH FROM NOW() - OLD.production_start_time)::INTEGER / 60; -- Convert to minutes\n    NEW.production_start_time = NULL; -- Reset the start time when paused\n  END IF;\n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "function_name": "set_production_start_time_on_start",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION public.set_production_start_time_on_start()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  -- When an order changes to in-progress, set the production start time\n  IF NEW.status = 'in-progress' AND (OLD.status != 'in-progress' OR OLD.status IS NULL) THEN\n    NEW.production_start_time = NOW();\n  END IF;\n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "function_name": "finalize_production_time_on_complete",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION public.finalize_production_time_on_complete()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n  -- When an order is completed, finalize the production time\n  IF NEW.status = 'completed' AND OLD.status = 'in-progress' AND OLD.production_start_time IS NOT NULL THEN\n    NEW.production_time_accumulated = OLD.production_time_accumulated + \n      EXTRACT(EPOCH FROM NOW() - OLD.production_start_time)::INTEGER / 60; -- Convert to minutes\n    NEW.production_start_time = NULL; -- Reset the start time\n  END IF;\n  RETURN NEW;\nEND;\n$function$\n"
+  },
+  {
+    "function_name": "fix_queue_positions",
+    "arguments": "",
+    "definition": "CREATE OR REPLACE FUNCTION public.fix_queue_positions()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  user_id_value UUID;\r\nBEGIN\r\n  -- Skip if this trigger is already running\r\n  IF current_setting('app.fix_queue_positions_running', TRUE) = 'true' THEN\r\n    RETURN NEW;\r\n  END IF;\r\n  \r\n  -- Set a flag to block recursion\r\n  PERFORM set_config('app.fix_queue_positions_running', 'true', TRUE);\r\n  \r\n  -- Your logic\r\n  user_id_value := NEW.user_id;\r\n  WITH ordered_orders AS (\r\n    SELECT \r\n      id,\r\n      ROW_NUMBER() OVER (ORDER BY queue_position) AS new_position\r\n    FROM orders\r\n    WHERE status IN ('pending', 'in-progress')\r\n      AND user_id = user_id_value\r\n  )\r\n  UPDATE orders\r\n  SET queue_position = ordered_orders.new_position\r\n  FROM ordered_orders\r\n  WHERE orders.id = ordered_orders.id;\r\n  \r\n  -- Reset the flag\r\n  PERFORM set_config('app.fix_queue_positions_running', 'false', TRUE);\r\n  RETURN NEW;\r\nEND;\r\n$function$\n"
+  }
+]

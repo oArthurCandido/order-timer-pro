@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrder } from "@/contexts/OrderContext";
 import { formatDuration } from "@/lib/calculateProductionTime";
@@ -6,6 +5,7 @@ import { differenceInMinutes, format } from "date-fns";
 import { Clock, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Order, OrderItem } from "@/types/order";
 
 const OrderQueue = () => {
   const { orders, updateOrderStatus, loading } = useOrder();
@@ -17,17 +17,22 @@ const OrderQueue = () => {
     .sort((a, b) => a.queuePosition - b.queuePosition);
 
   // Get the current in-progress order if any
-  const inProgressOrder = orders.find((order) => order.status === "in-progress");
+  const inProgressOrder = orders.find(
+    (order) => order.status === "in-progress"
+  );
 
   // Calculate current production time for in-progress orders
-  const getActualProductionTime = (order: any): number => {
+  const getActualProductionTime = (order: Order): number => {
     let time = order.productionTimeAccumulated || 0;
-    
+
     // If order is in progress, add the current running time
-    if (order.status === 'in-progress' && order.productionStartTime) {
-      time += differenceInMinutes(new Date(), new Date(order.productionStartTime));
+    if (order.status === "in-progress" && order.productionStartTime) {
+      time += differenceInMinutes(
+        new Date(),
+        new Date(order.productionStartTime)
+      );
     }
-    
+
     return time;
   };
 
@@ -36,23 +41,27 @@ const OrderQueue = () => {
     if (inProgressOrder) {
       const timer = setInterval(() => {
         // This empty setState will trigger a re-render
-        setLocalLoading(prev => prev);
+        setLocalLoading((prev) => prev);
       }, 60000); // every minute
-      
+
       return () => clearInterval(timer);
     }
   }, [inProgressOrder]);
 
+  let isProcessingOrder = false; // Global or useState
+
   const handleStartNextOrder = async () => {
-    if (pendingOrders.length === 0) return;
-    
+    if (pendingOrders.length === 0 || isProcessingOrder) return;
+
     try {
+      isProcessingOrder = true;
       setLocalLoading(true);
       await updateOrderStatus(pendingOrders[0].id, "in-progress");
     } catch (error) {
       console.error("Error starting order:", error);
       toast.error("Failed to start the order. Please try again.");
     } finally {
+      isProcessingOrder = false;
       setLocalLoading(false);
     }
   };
@@ -94,20 +103,27 @@ const OrderQueue = () => {
             </h3>
             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
               <div className="flex justify-between mb-1">
-                <span className="font-medium">{inProgressOrder.customerName}</span>
+                <span className="font-medium">
+                  {inProgressOrder.customerName}
+                </span>
                 <span className="text-sm text-muted-foreground">
-                  {formatDuration(getActualProductionTime(inProgressOrder))} / {formatDuration(inProgressOrder.totalProductionTime)}
+                  {formatDuration(getActualProductionTime(inProgressOrder))} /{" "}
+                  {formatDuration(inProgressOrder.totalProductionTime)}
                 </span>
               </div>
               <div className="text-sm text-muted-foreground mb-2">
-                {inProgressOrder.items.map((item: any) => (
+                {inProgressOrder.items.map((item: OrderItem) => (
                   <span key={item.id} className="mr-2">
                     {item.quantity}x {item.name}
                   </span>
                 ))}
               </div>
               <div className="text-xs text-muted-foreground">
-                Est. completion: {format(new Date(inProgressOrder.estimatedCompletionDate), "PPp")}
+                Est. completion:{" "}
+                {format(
+                  new Date(inProgressOrder.estimatedCompletionDate),
+                  "PPp"
+                )}
               </div>
             </div>
           </div>
@@ -156,7 +172,8 @@ const OrderQueue = () => {
                     Position: {order.queuePosition}
                   </span>
                   <span className="text-muted-foreground">
-                    Est. completion: {format(new Date(order.estimatedCompletionDate), "PPp")}
+                    Est. completion:{" "}
+                    {format(new Date(order.estimatedCompletionDate), "PPp")}
                   </span>
                 </div>
               </div>

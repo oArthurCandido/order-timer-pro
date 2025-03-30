@@ -1,0 +1,44 @@
+[
+  {
+    "trigger_name": "on_order_delete",
+    "event": "DELETE",
+    "timing": "AFTER",
+    "definition": "EXECUTE FUNCTION handle_order_delete()"
+  },
+  {
+    "trigger_name": "on_order_queue_position_change",
+    "event": "UPDATE",
+    "timing": "BEFORE",
+    "definition": "EXECUTE FUNCTION reorder_queue_positions()"
+  },
+  {
+    "trigger_name": "trigger_finalize_production_time_on_complete",
+    "event": "UPDATE",
+    "timing": "BEFORE",
+    "definition": "EXECUTE FUNCTION finalize_production_time_on_complete()"
+  },
+  {
+    "trigger_name": "trigger_fix_queue_positions",
+    "event": "INSERT",
+    "timing": "AFTER",
+    "definition": "EXECUTE FUNCTION fix_queue_positions()"
+  },
+  {
+    "trigger_name": "trigger_fix_queue_positions",
+    "event": "UPDATE",
+    "timing": "AFTER",
+    "definition": "EXECUTE FUNCTION fix_queue_positions()"
+  },
+  {
+    "trigger_name": "trigger_set_production_start_time_on_start",
+    "event": "UPDATE",
+    "timing": "BEFORE",
+    "definition": "EXECUTE FUNCTION set_production_start_time_on_start()"
+  },
+  {
+    "trigger_name": "trigger_update_production_time_on_pause",
+    "event": "UPDATE",
+    "timing": "BEFORE",
+    "definition": "EXECUTE FUNCTION update_production_time_on_pause()"
+  }
+]
