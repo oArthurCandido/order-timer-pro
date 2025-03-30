@@ -250,22 +250,44 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           status,
           updated_at: new Date().toISOString()
         })
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
         
       if (error) throw error;
       
-      setOrders(prev => {
-        const updatedOrders = prev.map(order =>
-          order.id === id
-            ? { ...order, status, updatedAt: new Date() }
-            : order
-        );
-        
-        return updatedOrders;
-      });
+      const updatedOrders = orders.map(order =>
+        order.id === id
+          ? { 
+              ...order, 
+              status, 
+              updatedAt: new Date(),
+              // Other fields will be updated when we fetch data again
+            }
+          : order
+      );
       
+      setOrders(updatedOrders);
       toast.success(`Order status updated to ${status}`);
+      
+      const { data, error: fetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (!fetchError && data) {
+        setOrders(prev => prev.map(order => 
+          order.id === id
+            ? {
+                ...order,
+                status: data.status as OrderStatus,
+                productionStartTime: data.production_start_time ? new Date(data.production_start_time) : undefined,
+                productionTimeAccumulated: data.production_time_accumulated || 0,
+                updatedAt: new Date(data.updated_at)
+              }
+            : order
+        ));
+      }
+      
     } catch (error: any) {
       console.error("Error updating order status:", error);
       toast.error(error.message || "Failed to update order status");
@@ -282,43 +304,50 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           queue_position: newPosition,
           updated_at: new Date().toISOString()
         })
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
         
       if (error) throw error;
       
-      setOrders(prev => {
-        const activeOrders = prev.filter(
-          (o) => o.status === "pending" || o.status === "in-progress"
-        );
-        const otherOrders = prev.filter(
-          (o) => o.status !== "pending" && o.status !== "in-progress"
-        );
+      const { data: ordersData, error: fetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('queue_position', { ascending: true });
         
-        const orderToMove = activeOrders.find((o) => o.id === id);
-        
-        if (!orderToMove) {
-          return prev;
-        }
-        
-        const filteredOrders = activeOrders.filter((o) => o.id !== id);
-        
-        const boundedPosition = Math.max(1, Math.min(newPosition, filteredOrders.length + 1));
-        
-        filteredOrders.splice(boundedPosition - 1, 0, {
-          ...orderToMove,
-          queuePosition: boundedPosition,
-          updatedAt: new Date(),
-        });
-        
-        const reorderedOrders = filteredOrders.map((order, index) => ({
-          ...order,
-          queuePosition: index + 1,
+      if (fetchError) throw fetchError;
+      
+      if (ordersData) {
+        const transformedOrders: Order[] = ordersData.map(order => ({
+          id: order.id,
+          customerName: order.customer_name,
+          customerEmail: order.customer_email,
+          items: [
+            ...(order.item1_quantity > 0 ? [{
+              id: "1",
+              name: settings.items[0].name,
+              quantity: order.item1_quantity,
+              productionTimePerUnit: settings.items[0].productionTimePerUnit,
+            }] : []),
+            ...(order.item2_quantity > 0 ? [{
+              id: "2",
+              name: settings.items[1].name,
+              quantity: order.item2_quantity,
+              productionTimePerUnit: settings.items[1].productionTimePerUnit,
+            }] : []),
+          ],
+          status: order.status as OrderStatus,
+          totalProductionTime: order.total_production_time,
+          estimatedCompletionDate: new Date(order.estimated_completion_date),
+          queuePosition: order.queue_position,
+          createdAt: new Date(order.created_at),
+          updatedAt: new Date(order.updated_at),
+          productionStartTime: order.production_start_time ? new Date(order.production_start_time) : undefined,
+          productionTimeAccumulated: order.production_time_accumulated || 0,
         }));
-        
+
+        setOrders(transformedOrders);
         toast.success("Order position updated");
-        return [...reorderedOrders, ...otherOrders];
-      });
+      }
     } catch (error: any) {
       console.error("Error updating order position:", error);
       toast.error(error.message || "Failed to update order position");
