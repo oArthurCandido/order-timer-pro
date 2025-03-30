@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Order, ProductionSettings, OrderStatus } from "@/types/order";
 import { calculateEstimatedCompletionDate, calculateProductionTime, getTotalQueuedProductionTime } from "@/lib/calculateProductionTime";
@@ -191,6 +192,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Calculate next queue position
       const queuePosition = orders.filter(o => o.status === 'pending' || o.status === 'in-progress').length + 1;
       
       const item1 = orderData.items.find(item => item.id === "1");
@@ -216,22 +218,8 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       
       if (data) {
-        const newOrder: Order = {
-          id: data.id,
-          customerName: data.customer_name,
-          customerEmail: data.customer_email,
-          items: orderData.items,
-          status: data.status as OrderStatus,
-          totalProductionTime: data.total_production_time,
-          estimatedCompletionDate: new Date(data.estimated_completion_date),
-          queuePosition: data.queue_position,
-          createdAt: new Date(data.created_at),
-          updatedAt: new Date(data.updated_at),
-          productionTimeAccumulated: data.production_time_accumulated || 0,
-          productionStartTime: data.production_start_time ? new Date(data.production_start_time) : undefined,
-        };
-        
-        setOrders(prev => [...prev, newOrder]);
+        // Manually fetch the updated order list instead of trying to update it in memory
+        await fetchOrders();
         toast.success("Order added successfully");
       }
     } catch (error: any) {
@@ -240,84 +228,21 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateOrderStatus = async (id: string, status: OrderStatus) => {
+  // New function to fetch orders - reused to avoid code duplication
+  const fetchOrders = async () => {
     if (!user) return;
     
     try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-        
-      if (error) throw error;
-      
-      const updatedOrders = orders.map(order =>
-        order.id === id
-          ? { 
-              ...order, 
-              status, 
-              updatedAt: new Date(),
-              // Other fields will be updated when we fetch data again
-            }
-          : order
-      );
-      
-      setOrders(updatedOrders);
-      toast.success(`Order status updated to ${status}`);
-      
-      const { data, error: fetchError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (!fetchError && data) {
-        setOrders(prev => prev.map(order => 
-          order.id === id
-            ? {
-                ...order,
-                status: data.status as OrderStatus,
-                productionStartTime: data.production_start_time ? new Date(data.production_start_time) : undefined,
-                productionTimeAccumulated: data.production_time_accumulated || 0,
-                updatedAt: new Date(data.updated_at)
-              }
-            : order
-        ));
-      }
-      
-    } catch (error: any) {
-      console.error("Error updating order status:", error);
-      toast.error(error.message || "Failed to update order status");
-    }
-  };
-
-  const updateOrderPosition = async (id: string, newPosition: number) => {
-    if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          queue_position: newPosition,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-        
-      if (error) throw error;
-      
-      const { data: ordersData, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from('orders')
         .select('*')
         .eq('user_id', user.id)
         .order('queue_position', { ascending: true });
         
-      if (fetchError) throw fetchError;
+      if (error) throw error;
       
-      if (ordersData) {
-        const transformedOrders: Order[] = ordersData.map(order => ({
+      if (data) {
+        const transformedOrders: Order[] = data.map(order => ({
           id: order.id,
           customerName: order.customer_name,
           customerEmail: order.customer_email,
@@ -346,8 +271,53 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         }));
 
         setOrders(transformedOrders);
-        toast.success("Order position updated");
       }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      toast.error("Failed to refresh orders");
+    }
+  };
+
+  const updateOrderStatus = async (id: string, status: OrderStatus) => {
+    if (!user) return;
+    
+    try {
+      // Simplified update - only update the status and let DB triggers handle the rest
+      const { error } = await supabase
+        .from('orders')
+        .update({ status })
+        .eq('id', id)
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      // Fetch the updated data from the server instead of trying to calculate it
+      await fetchOrders();
+      toast.success(`Order status updated to ${status}`);
+      
+    } catch (error: any) {
+      console.error("Error updating order status:", error);
+      toast.error(error.message || "Failed to update order status");
+    }
+  };
+
+  const updateOrderPosition = async (id: string, newPosition: number) => {
+    if (!user) return;
+    
+    try {
+      // Simplified position update
+      const { error } = await supabase
+        .from('orders')
+        .update({ queue_position: newPosition })
+        .eq('id', id)
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      // Fetch fresh data instead of trying to modify it in memory
+      await fetchOrders();
+      toast.success("Order position updated");
+      
     } catch (error: any) {
       console.error("Error updating order position:", error);
       toast.error(error.message || "Failed to update order position");
@@ -366,8 +336,13 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         
       if (error) throw error;
       
+      // Just filter the deleted order from local state
       setOrders(prev => prev.filter(order => order.id !== id));
       toast.success("Order deleted");
+      
+      // Then refresh the queue positions
+      await fetchOrders();
+      
     } catch (error: any) {
       console.error("Error deleting order:", error);
       toast.error(error.message || "Failed to delete order");
@@ -389,7 +364,6 @@ export function OrderProvider({ children }: { children: ReactNode }) {
           start_time: newSettings.startTime,
           end_time: newSettings.endTime,
           working_days: newSettings.workingDays,
-          updated_at: new Date().toISOString()
         })
         .eq('user_id', user.id);
         

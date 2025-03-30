@@ -52,6 +52,7 @@ const OrderManagement = () => {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const isMobile = useIsMobile();
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
 
   // Calculate current production time for in-progress orders
   const getActualProductionTime = (order: Order): number => {
@@ -89,11 +90,20 @@ const OrderManagement = () => {
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const handleStatusChange = (id: string, newStatus: OrderStatus) => {
-    updateOrderStatus(id, newStatus);
+  const handleStatusChange = async (id: string, newStatus: OrderStatus) => {
+    if (processingAction) return;
+    
+    try {
+      setProcessingAction(id);
+      await updateOrderStatus(id, newStatus);
+    } finally {
+      setProcessingAction(null);
+    }
   };
 
-  const handleMoveOrder = (id: string, direction: "up" | "down") => {
+  const handleMoveOrder = async (id: string, direction: "up" | "down") => {
+    if (processingAction) return;
+    
     const order = orders.find((o) => o.id === id);
     if (!order) return;
     
@@ -101,17 +111,29 @@ const OrderManagement = () => {
       ? Math.max(1, order.queuePosition - 1)
       : order.queuePosition + 1;
       
-    updateOrderPosition(id, newPosition);
+    try {
+      setProcessingAction(id);
+      await updateOrderPosition(id, newPosition);
+    } finally {
+      setProcessingAction(null);
+    }
   };
 
   const handleDelete = (id: string) => {
     setConfirmDeleteId(id);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (confirmDeleteId) {
-      deleteOrder(confirmDeleteId);
-      setConfirmDeleteId(null);
+      if (processingAction) return;
+      
+      try {
+        setProcessingAction(confirmDeleteId);
+        await deleteOrder(confirmDeleteId);
+      } finally {
+        setProcessingAction(null);
+        setConfirmDeleteId(null);
+      }
     }
   };
 
@@ -216,7 +238,8 @@ const OrderManagement = () => {
             {order.status === "pending" && (
               <Button 
                 variant="outline" 
-                size="sm" 
+                size="sm"
+                disabled={!!processingAction} 
                 onClick={() => handleStatusChange(order.id, "in-progress")}
               >
                 <Play className="h-3.5 w-3.5 mr-1" />
@@ -227,7 +250,8 @@ const OrderManagement = () => {
             {order.status === "in-progress" && (
               <Button 
                 variant="outline" 
-                size="sm" 
+                size="sm"
+                disabled={!!processingAction}
                 onClick={() => handleStatusChange(order.id, "completed")}
               >
                 <CheckCircle className="h-3.5 w-3.5 mr-1" />
@@ -248,7 +272,11 @@ const OrderManagement = () => {
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  disabled={!!processingAction}
+                >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -257,13 +285,14 @@ const OrderManagement = () => {
                   <>
                     <DropdownMenuItem 
                       onClick={() => handleMoveOrder(order.id, "up")}
-                      disabled={order.queuePosition === 1}
+                      disabled={order.queuePosition === 1 || !!processingAction}
                     >
                       <MoveUp className="mr-2 h-4 w-4" />
                       Move Up in Queue
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleMoveOrder(order.id, "down")}
+                      disabled={!!processingAction}
                     >
                       <MoveDown className="mr-2 h-4 w-4" />
                       Move Down in Queue
@@ -272,14 +301,20 @@ const OrderManagement = () => {
                 )}
                 
                 {order.status === "in-progress" && (
-                  <DropdownMenuItem onClick={() => handleStatusChange(order.id, "pending")}>
+                  <DropdownMenuItem 
+                    onClick={() => handleStatusChange(order.id, "pending")}
+                    disabled={!!processingAction}
+                  >
                     <Pause className="mr-2 h-4 w-4" />
                     Pause Production
                   </DropdownMenuItem>
                 )}
                 
                 {order.status !== "cancelled" && (
-                  <DropdownMenuItem onClick={() => handleStatusChange(order.id, "cancelled")}>
+                  <DropdownMenuItem 
+                    onClick={() => handleStatusChange(order.id, "cancelled")}
+                    disabled={!!processingAction}
+                  >
                     <X className="mr-2 h-4 w-4" />
                     Cancel Order
                   </DropdownMenuItem>
@@ -287,6 +322,7 @@ const OrderManagement = () => {
                 
                 <DropdownMenuItem 
                   onClick={() => handleDelete(order.id)}
+                  disabled={!!processingAction}
                   className="text-red-500 focus:text-red-500"
                 >
                   <Trash className="mr-2 h-4 w-4" />
@@ -370,26 +406,34 @@ const OrderManagement = () => {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            disabled={!!processingAction}
+                          >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           {order.status === "pending" && (
                             <>
-                              <DropdownMenuItem onClick={() => handleStatusChange(order.id, "in-progress")}>
+                              <DropdownMenuItem 
+                                onClick={() => handleStatusChange(order.id, "in-progress")}
+                                disabled={!!processingAction}
+                              >
                                 <Play className="mr-2 h-4 w-4" />
                                 Start Production
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleMoveOrder(order.id, "up")}
-                                disabled={order.queuePosition === 1}
+                                disabled={order.queuePosition === 1 || !!processingAction}
                               >
                                 <MoveUp className="mr-2 h-4 w-4" />
                                 Move Up in Queue
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleMoveOrder(order.id, "down")}
+                                disabled={!!processingAction}
                               >
                                 <MoveDown className="mr-2 h-4 w-4" />
                                 Move Down in Queue
@@ -399,11 +443,17 @@ const OrderManagement = () => {
                           
                           {order.status === "in-progress" && (
                             <>
-                              <DropdownMenuItem onClick={() => handleStatusChange(order.id, "completed")}>
+                              <DropdownMenuItem 
+                                onClick={() => handleStatusChange(order.id, "completed")}
+                                disabled={!!processingAction}
+                              >
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Mark as Completed
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleStatusChange(order.id, "pending")}>
+                              <DropdownMenuItem 
+                                onClick={() => handleStatusChange(order.id, "pending")}
+                                disabled={!!processingAction}
+                              >
                                 <Pause className="mr-2 h-4 w-4" />
                                 Pause Production
                               </DropdownMenuItem>
@@ -418,7 +468,10 @@ const OrderManagement = () => {
                           )}
                           
                           {order.status !== "cancelled" && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(order.id, "cancelled")}>
+                            <DropdownMenuItem 
+                              onClick={() => handleStatusChange(order.id, "cancelled")}
+                              disabled={!!processingAction}
+                            >
                               <X className="mr-2 h-4 w-4" />
                               Cancel Order
                             </DropdownMenuItem>
@@ -426,6 +479,7 @@ const OrderManagement = () => {
                           
                           <DropdownMenuItem 
                             onClick={() => handleDelete(order.id)}
+                            disabled={!!processingAction}
                             className="text-red-500 focus:text-red-500"
                           >
                             <Trash className="mr-2 h-4 w-4" />
@@ -450,10 +504,18 @@ const OrderManagement = () => {
           </DialogHeader>
           <p>Are you sure you want to delete this order? This action cannot be undone.</p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteId(null)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmDeleteId(null)}
+              disabled={!!processingAction}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDelete}
+              disabled={!!processingAction}
+            >
               Delete
             </Button>
           </DialogFooter>
