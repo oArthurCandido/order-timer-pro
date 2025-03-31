@@ -6,37 +6,45 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Profiles table
 CREATE TABLE IF NOT EXISTS profiles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users NOT NULL,
-    name TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    id UUID PRIMARY KEY,
+    full_name TEXT,
+    email TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Production settings table
 CREATE TABLE IF NOT EXISTS production_settings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users NOT NULL,
-    default_production_time INTEGER NOT NULL DEFAULT 15, -- tempo em minutos
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(user_id)
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    item1_name TEXT NOT NULL DEFAULT 'Item 1',
+    item1_production_time INTEGER NOT NULL DEFAULT 10,
+    item2_name TEXT NOT NULL DEFAULT 'Item 2',
+    item2_production_time INTEGER NOT NULL DEFAULT 15,
+    working_hours_per_day INTEGER NOT NULL DEFAULT 8,
+    start_time TEXT NOT NULL DEFAULT '09:00',
+    end_time TEXT NOT NULL DEFAULT '17:00',
+    working_days INTEGER[] NOT NULL DEFAULT '{1,2,3,4,5}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    user_id UUID REFERENCES auth.users
 );
 
 -- Orders table
 CREATE TABLE IF NOT EXISTS orders (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES auth.users NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_name TEXT NOT NULL,
-    description TEXT,
+    customer_email TEXT NOT NULL,
+    item1_quantity INTEGER NOT NULL DEFAULT 0,
+    item2_quantity INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending',
+    total_production_time INTEGER NOT NULL,
+    estimated_completion_date TIMESTAMPTZ NOT NULL,
     queue_position INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'waiting', -- waiting, in_production, paused, completed, cancelled
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    user_id UUID REFERENCES auth.users,
     production_start_time TIMESTAMPTZ,
-    production_end_time TIMESTAMPTZ,
-    total_production_time INTEGER, -- tempo total em segundos
-    paused_time INTEGER DEFAULT 0, -- tempo total em pausa em segundos
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    production_time_accumulated INTEGER DEFAULT 0
 );
 
 -- Índices
@@ -50,41 +58,48 @@ ALTER TABLE production_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
-CREATE POLICY "Users can view own profile" 
+CREATE POLICY "Enable read for users based on user_id" 
     ON profiles FOR SELECT 
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = id);
 
-CREATE POLICY "Users can update own profile" 
+CREATE POLICY "Enable insert for authenticated users only" 
+    ON profiles FOR INSERT 
+    WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Enable update for users based on user_id" 
     ON profiles FOR UPDATE 
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = id)
+    WITH CHECK (auth.uid() = id);
 
 -- Production Settings policies
-CREATE POLICY "Users can view own settings" 
+CREATE POLICY "Enable read for users based on user_id" 
     ON production_settings FOR SELECT 
     USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own settings" 
-    ON production_settings FOR UPDATE 
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own settings" 
+CREATE POLICY "Enable insert for authenticated users only" 
     ON production_settings FOR INSERT 
     WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "Enable update for users based on user_id" 
+    ON production_settings FOR UPDATE 
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
 -- Orders policies
-CREATE POLICY "Users can view own orders" 
+CREATE POLICY "Enable read for users based on user_id" 
     ON orders FOR SELECT 
     USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own orders" 
+CREATE POLICY "Enable insert for authenticated users only" 
     ON orders FOR INSERT 
     WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own orders" 
+CREATE POLICY "Enable update for users based on user_id" 
     ON orders FOR UPDATE 
-    USING (auth.uid() = user_id);
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete own orders" 
+CREATE POLICY "Enable delete for users based on user_id" 
     ON orders FOR DELETE 
     USING (auth.uid() = user_id);
 
