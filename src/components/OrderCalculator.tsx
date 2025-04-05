@@ -199,7 +199,7 @@ const OrderCalculator = () => {
             disabled={isSubmitting}
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />
-            {isSubmitting ? "Adding to Queue..." : "Accept and Add to Queue"}
+            {isSubmitting ? "Adicionando a fila..." : "Aceitar pedido e adicionar a fila"}
           </Button>
         </CardFooter>
       )}
