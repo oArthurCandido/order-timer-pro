@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -8,6 +7,7 @@ import { useOrder } from "@/contexts/OrderContext";
 import { formatDuration } from "@/lib/calculateProductionTime";
 import { Calculator, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const OrderCalculator = () => {
   const { settings, calculateNewOrder, addOrder, loading } = useOrder();
@@ -93,7 +93,7 @@ const OrderCalculator = () => {
         <CardHeader>
           <div className="flex items-center space-x-2">
             <Calculator className="h-5 w-5 text-primary" />
-            <CardTitle>Order Time Calculator</CardTitle>
+            <CardTitle>Calculadora de Tempo de Produção</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="py-8">
@@ -112,27 +112,27 @@ const OrderCalculator = () => {
       <CardHeader>
         <div className="flex items-center space-x-2">
           <Calculator className="h-5 w-5 text-primary" />
-          <CardTitle>Order Time Calculator</CardTitle>
+          <CardTitle>Calculadora de Tempo de Produção</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="customerName">Customer Name</Label>
+            <Label htmlFor="customerName">Nome do Cliente</Label>
             <Input
               id="customerName"
-              placeholder="John Doe"
+              placeholder="João Silva"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               className="mt-1"
             />
           </div>
           <div>
-            <Label htmlFor="customerEmail">Customer Email</Label>
+            <Label htmlFor="customerEmail">Email do Cliente</Label>
             <Input
               id="customerEmail"
               type="email"
-              placeholder="john@example.com"
+              placeholder="joao@exemplo.com"
               value={customerEmail}
               onChange={(e) => setCustomerEmail(e.target.value)}
               className="mt-1"
@@ -171,20 +171,20 @@ const OrderCalculator = () => {
           disabled={!customerName || !customerEmail || (item1Quantity === 0 && item2Quantity === 0)}
         >
           <Clock className="mr-2 h-4 w-4" />
-          Calculate Production Time
+          Calcular Tempo de Produção
         </Button>
 
         {calculationResult && (
           <div className="mt-4 p-4 bg-accent rounded-lg">
-            <h3 className="font-semibold mb-2">Calculation Results</h3>
+            <h3 className="font-semibold mb-2">Resultados da Calculadora</h3>
             <div className="space-y-2 text-sm">
               <p>
-                <span className="font-medium">Production Time:</span>{" "}
+                <span className="font-medium">Tempo de Produção:</span>{" "}
                 {formatDuration(calculationResult.totalProductionTime)}
               </p>
               <p>
-                <span className="font-medium">Estimated Completion:</span>{" "}
-                {format(calculationResult.estimatedCompletionDate, "PPpp")}
+                <span className="font-medium">Data de Conclusão Estimada:</span>{" "}
+                {format(calculationResult.estimatedCompletionDate, "dd 'de' MMMM 'de' yyyy, HH:mm:ss", { locale: ptBR })}
               </p>
             </div>
           </div>

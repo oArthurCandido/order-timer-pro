@@ -72,7 +72,7 @@ const OrderQueue = () => {
         <CardHeader>
           <div className="flex items-center space-x-2">
             <Clock className="h-5 w-5 text-primary" />
-            <CardTitle>Production Queue</CardTitle>
+            <CardTitle>Fila de Produção</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="py-8">
@@ -91,7 +91,7 @@ const OrderQueue = () => {
       <CardHeader>
         <div className="flex items-center space-x-2">
           <Clock className="h-5 w-5 text-primary" />
-          <CardTitle>Production Queue</CardTitle>
+          <CardTitle>Fila de Produção</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -99,7 +99,7 @@ const OrderQueue = () => {
           <div className="mb-4">
             <h3 className="font-medium mb-2 flex items-center">
               <Play className="h-4 w-4 text-green-500 mr-2" />
-              Currently In Progress
+              Em Produção
             </h3>
             <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
               <div className="flex justify-between mb-1">
@@ -119,10 +119,10 @@ const OrderQueue = () => {
                 ))}
               </div>
               <div className="text-xs text-muted-foreground">
-                Est. completion:{" "}
+                Conclusão prevista:{" "}
                 {format(
                   new Date(inProgressOrder.estimatedCompletionDate),
-                  "PPp"
+                  "dd/MM/yyyy 'às' HH:mm"
                 )}
               </div>
             </div>
@@ -130,22 +130,22 @@ const OrderQueue = () => {
         ) : (
           pendingOrders.length > 0 && (
             <div className="flex justify-between items-center p-3 border border-dashed border-primary/40 rounded-lg">
-              <span className="text-sm">No order in progress</span>
+              <span className="text-sm">Nenhum pedido em produção</span>
               <button
                 onClick={handleStartNextOrder}
                 disabled={loading || localLoading}
                 className="text-xs px-2 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded transition-colors disabled:opacity-50"
               >
-                Start Next Order
+                Iniciar Próximo Pedido
               </button>
             </div>
           )
         )}
 
-        <h3 className="font-medium mb-2">Pending Orders</h3>
+        <h3 className="font-medium mb-2">Pedidos Pendentes</h3>
         {pendingOrders.length === 0 ? (
           <div className="text-center p-4 text-muted-foreground">
-            No pending orders in queue
+            Nenhum pedido pendente na fila
           </div>
         ) : (
           <div className="space-y-2">
@@ -169,11 +169,11 @@ const OrderQueue = () => {
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">
-                    Position: {order.queuePosition}
+                    Posição: {order.queuePosition}
                   </span>
                   <span className="text-muted-foreground">
-                    Est. completion:{" "}
-                    {format(new Date(order.estimatedCompletionDate), "PPp")}
+                    Conclusão prevista:{" "}
+                    {format(new Date(order.estimatedCompletionDate), "dd/MM/yyyy 'às' HH:mm")}
                   </span>
                 </div>
               </div>

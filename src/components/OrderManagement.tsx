@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Table,
@@ -139,7 +138,7 @@ const OrderManagement = () => {
 
   const prepareEmail = (order: Order) => {
     setEmailOrder(order);
-    setEmailSubject(`Order ${order.id.substring(6)} Completion`);
+    setEmailSubject(`Pedido ${order.id.substring(6)} Concluído`);
     
     // Create a default email body
     const itemsList = order.items
@@ -147,7 +146,7 @@ const OrderManagement = () => {
       .join(", ");
       
     setEmailBody(
-      `Dear ${order.customerName},\n\nWe're pleased to inform you that your order (${itemsList}) has been completed and is ready for pickup/delivery.\n\nThank you for your business!\n\nBest regards,\nOrderTimer Team`
+      `Prezado(a) ${order.customerName},\n\nTemos o prazer de informar que seu pedido (${itemsList}) foi concluído e está pronto para retirada/entrega.\n\nAgradecemos a preferência!\n\nAtenciosamente,\nEquipe OrderTimer`
     );
     
     setSendingEmail(true);
@@ -167,28 +166,28 @@ const OrderManagement = () => {
         return (
           <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-200">
             <Clock className="mr-1 h-3 w-3" />
-            Pending
+            Pendente
           </Badge>
         );
       case "in-progress":
         return (
           <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-200">
             <Play className="mr-1 h-3 w-3" />
-            In Progress
+            Em Produção
           </Badge>
         );
       case "completed":
         return (
           <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-200">
             <CheckCircle className="mr-1 h-3 w-3" />
-            Completed
+            Concluído
           </Badge>
         );
       case "cancelled":
         return (
           <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-200">
             <X className="mr-1 h-3 w-3" />
-            Cancelled
+            Cancelado
           </Badge>
         );
     }
@@ -206,7 +205,7 @@ const OrderManagement = () => {
       <CardContent className="pb-2">
         <div className="grid grid-cols-2 gap-2 text-sm mb-2">
           <div>
-            <p className="font-medium text-muted-foreground">Items:</p>
+            <p className="font-medium text-muted-foreground">Itens:</p>
             {order.items.map((item) => (
               <p key={item.id} className="text-foreground">
                 {item.quantity}x {item.name}
@@ -214,18 +213,18 @@ const OrderManagement = () => {
             ))}
           </div>
           <div>
-            <p className="font-medium text-muted-foreground">Est. Production Time:</p>
+            <p className="font-medium text-muted-foreground">Tempo de Produção Estimado:</p>
             <p className="text-foreground">{formatDuration(order.totalProductionTime)}</p>
             
-            <p className="font-medium text-muted-foreground mt-1">Actual Production Time:</p>
+            <p className="font-medium text-muted-foreground mt-1">Tempo de Produção Real:</p>
             <p className="text-foreground">{formatDuration(getActualProductionTime(order))}</p>
             
-            <p className="font-medium text-muted-foreground mt-1">Est. Completion:</p>
-            <p className="text-foreground">{format(new Date(order.estimatedCompletionDate), "MMM d, h:mm a")}</p>
+            <p className="font-medium text-muted-foreground mt-1">Data de Conclusão Estimada:</p>
+            <p className="text-foreground">{format(new Date(order.estimatedCompletionDate), "dd/MM, HH:mm")}</p>
             
             {(order.status === "pending" || order.status === "in-progress") && (
               <>
-                <p className="font-medium text-muted-foreground mt-1">Queue Position:</p>
+                <p className="font-medium text-muted-foreground mt-1">Posição na Fila:</p>
                 <p className="text-foreground">{order.queuePosition}</p>
               </>
             )}
@@ -243,7 +242,7 @@ const OrderManagement = () => {
                 onClick={() => handleStatusChange(order.id, "in-progress")}
               >
                 <Play className="h-3.5 w-3.5 mr-1" />
-                Start
+                Iniciar
               </Button>
             )}
             
@@ -255,7 +254,7 @@ const OrderManagement = () => {
                 onClick={() => handleStatusChange(order.id, "completed")}
               >
                 <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                Complete
+                Concluir
               </Button>
             )}
             
@@ -288,14 +287,14 @@ const OrderManagement = () => {
                       disabled={order.queuePosition === 1 || !!processingAction}
                     >
                       <MoveUp className="mr-2 h-4 w-4" />
-                      Move Up in Queue
+                      Mover para Cima na Fila
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleMoveOrder(order.id, "down")}
                       disabled={!!processingAction}
                     >
                       <MoveDown className="mr-2 h-4 w-4" />
-                      Move Down in Queue
+                      Mover para Baixo na Fila
                     </DropdownMenuItem>
                   </>
                 )}
@@ -306,7 +305,7 @@ const OrderManagement = () => {
                     disabled={!!processingAction}
                   >
                     <Pause className="mr-2 h-4 w-4" />
-                    Pause Production
+                    Pausar Produção
                   </DropdownMenuItem>
                 )}
                 
@@ -316,7 +315,7 @@ const OrderManagement = () => {
                     disabled={!!processingAction}
                   >
                     <X className="mr-2 h-4 w-4" />
-                    Cancel Order
+                    Cancelar Pedido
                   </DropdownMenuItem>
                 )}
                 
@@ -326,7 +325,7 @@ const OrderManagement = () => {
                   className="text-red-500 focus:text-red-500"
                 >
                   <Trash className="mr-2 h-4 w-4" />
-                  Delete Order
+                  Apagar Pedido
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -342,7 +341,7 @@ const OrderManagement = () => {
         <div className="space-y-4">
           {sortedOrders.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No orders found
+              Nenhum pedido encontrado
             </div>
           ) : (
             sortedOrders.map((order) => (
@@ -355,21 +354,21 @@ const OrderManagement = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Items</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Itens</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Est. Time</TableHead>
-                <TableHead>Actual Time</TableHead>
-                <TableHead>Est. Completion</TableHead>
-                <TableHead>Queue</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Tempo Est.</TableHead>
+                <TableHead>Tempo Real</TableHead>
+                <TableHead>Conclusão Est.</TableHead>
+                <TableHead>Fila</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sortedOrders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    No orders found
+                    Nenhum pedido encontrado
                   </TableCell>
                 </TableRow>
               ) : (
@@ -394,7 +393,7 @@ const OrderManagement = () => {
                     <TableCell>{formatDuration(order.totalProductionTime)}</TableCell>
                     <TableCell>{formatDuration(getActualProductionTime(order))}</TableCell>
                     <TableCell>
-                      {format(new Date(order.estimatedCompletionDate), "MMM d, h:mm a")}
+                      {format(new Date(order.estimatedCompletionDate), "dd/MM, HH:mm")}
                     </TableCell>
                     <TableCell>
                       {(order.status === "pending" || order.status === "in-progress") ? (
@@ -429,14 +428,14 @@ const OrderManagement = () => {
                                 disabled={order.queuePosition === 1 || !!processingAction}
                               >
                                 <MoveUp className="mr-2 h-4 w-4" />
-                                Move Up in Queue
+                                Mover para Cima
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleMoveOrder(order.id, "down")}
                                 disabled={!!processingAction}
                               >
                                 <MoveDown className="mr-2 h-4 w-4" />
-                                Move Down in Queue
+                                Mover para Baixo
                               </DropdownMenuItem>
                             </>
                           )}
@@ -448,14 +447,14 @@ const OrderManagement = () => {
                                 disabled={!!processingAction}
                               >
                                 <CheckCircle className="mr-2 h-4 w-4" />
-                                Mark as Completed
+                                Marcar como Concluído
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleStatusChange(order.id, "pending")}
                                 disabled={!!processingAction}
                               >
                                 <Pause className="mr-2 h-4 w-4" />
-                                Pause Production
+                                Pausar Produção
                               </DropdownMenuItem>
                             </>
                           )}
@@ -463,7 +462,7 @@ const OrderManagement = () => {
                           {order.status === "completed" && (
                             <DropdownMenuItem onClick={() => prepareEmail(order)}>
                               <Mail className="mr-2 h-4 w-4" />
-                              Send Completion Email
+                              Enviar Email de Conclusão
                             </DropdownMenuItem>
                           )}
                           
@@ -473,7 +472,7 @@ const OrderManagement = () => {
                               disabled={!!processingAction}
                             >
                               <X className="mr-2 h-4 w-4" />
-                              Cancel Order
+                              Cancelar Pedido
                             </DropdownMenuItem>
                           )}
                           
@@ -483,7 +482,7 @@ const OrderManagement = () => {
                             className="text-red-500 focus:text-red-500"
                           >
                             <Trash className="mr-2 h-4 w-4" />
-                            Delete Order
+                            Excluir Pedido
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -500,23 +499,23 @@ const OrderManagement = () => {
       <Dialog open={!!confirmDeleteId} onOpenChange={() => setConfirmDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
           </DialogHeader>
-          <p>Are you sure you want to delete this order? This action cannot be undone.</p>
+          <p>Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.</p>
           <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => setConfirmDeleteId(null)}
               disabled={!!processingAction}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button 
               variant="destructive" 
               onClick={confirmDelete}
               disabled={!!processingAction}
             >
-              Delete
+              Excluir
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -526,22 +525,22 @@ const OrderManagement = () => {
       <Dialog open={sendingEmail} onOpenChange={() => setSendingEmail(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Send Completion Email</DialogTitle>
+            <DialogTitle>Enviar Email de Conclusão</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <div className="text-sm font-medium mb-1">To:</div>
+              <div className="text-sm font-medium mb-1">Para:</div>
               <div className="text-sm">{emailOrder?.customerEmail}</div>
             </div>
             <div>
-              <div className="text-sm font-medium mb-1">Subject:</div>
+              <div className="text-sm font-medium mb-1">Assunto:</div>
               <Input
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.target.value)}
               />
             </div>
             <div>
-              <div className="text-sm font-medium mb-1">Message:</div>
+              <div className="text-sm font-medium mb-1">Mensagem:</div>
               <textarea
                 value={emailBody}
                 onChange={(e) => setEmailBody(e.target.value)}
@@ -551,9 +550,9 @@ const OrderManagement = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSendingEmail(false)}>
-              Cancel
+              Cancelar
             </Button>
-            <Button onClick={sendEmail}>Send Email</Button>
+            <Button onClick={sendEmail}>Enviar Email</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

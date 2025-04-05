@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,13 +9,13 @@ import { ProductionSettings as Settings } from "@/types/order";
 import { Clock, Save } from "lucide-react";
 
 const weekdays = [
-  { id: 0, name: "Sunday" },
-  { id: 1, name: "Monday" },
-  { id: 2, name: "Tuesday" },
-  { id: 3, name: "Wednesday" },
-  { id: 4, name: "Thursday" },
-  { id: 5, name: "Friday" },
-  { id: 6, name: "Saturday" },
+  { id: 0, name: "Domingo" },
+  { id: 1, name: "Segunda" },
+  { id: 2, name: "Terça" },
+  { id: 3, name: "Quarta" },
+  { id: 4, name: "Quinta" },
+  { id: 5, name: "Sexta" },
+  { id: 6, name: "Sábado" },
 ];
 
 const ProductionSettings = () => {
@@ -76,7 +75,7 @@ const ProductionSettings = () => {
         <CardHeader>
           <div className="flex items-center space-x-2">
             <Clock className="h-5 w-5 text-primary" />
-            <CardTitle>Production Settings</CardTitle>
+            <CardTitle>Configurações de Produção</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="py-8">
@@ -95,18 +94,18 @@ const ProductionSettings = () => {
       <CardHeader>
         <div className="flex items-center space-x-2">
           <Clock className="h-5 w-5 text-primary" />
-          <CardTitle>Production Settings</CardTitle>
+          <CardTitle>Configurações de Produção</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-4">
             <div>
-              <h3 className="text-sm font-medium mb-2">Item Production Times</h3>
+              <h3 className="text-sm font-medium mb-2">Tempos de Produção dos Itens</h3>
               {localSettings.items.map((item, index) => (
                 <div key={item.id} className="grid grid-cols-2 gap-4 mb-3">
                   <div>
-                    <Label htmlFor={`item-name-${index}`}>Item Name</Label>
+                    <Label htmlFor={`item-name-${index}`}>Nome do Item</Label>
                     <Input
                       id={`item-name-${index}`}
                       value={item.name}
@@ -115,7 +114,7 @@ const ProductionSettings = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor={`item-time-${index}`}>Production Time (minutes per unit)</Label>
+                    <Label htmlFor={`item-time-${index}`}>Tempo de Produção (minutos por unidade)</Label>
                     <Input
                       id={`item-time-${index}`}
                       type="number"
@@ -131,7 +130,7 @@ const ProductionSettings = () => {
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="workingHours">Working Hours Per Day</Label>
+                <Label htmlFor="workingHours">Horas de Trabalho por Dia</Label>
                 <Input
                   id="workingHours"
                   type="number"
@@ -148,7 +147,7 @@ const ProductionSettings = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="startTime">Start Time</Label>
+                <Label htmlFor="startTime">Horário de Início</Label>
                 <Input
                   id="startTime"
                   type="time"
@@ -163,7 +162,7 @@ const ProductionSettings = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="endTime">End Time</Label>
+                <Label htmlFor="endTime">Horário de Término</Label>
                 <Input
                   id="endTime"
                   type="time"
@@ -180,7 +179,7 @@ const ProductionSettings = () => {
             </div>
 
             <div>
-              <Label className="block mb-2">Working Days</Label>
+              <Label className="block mb-2">Dias de Trabalho</Label>
               <div className="flex flex-wrap gap-4">
                 {weekdays.map((day) => (
                   <div key={day.id} className="flex items-center space-x-2">
@@ -209,7 +208,7 @@ const ProductionSettings = () => {
             disabled={isSubmitting}
           >
             <Save className="mr-2 h-4 w-4" />
-            {isSubmitting ? "Saving Settings..." : "Save Settings"}
+            {isSubmitting ? "Salvando Configurações..." : "Salvar Configurações"}
           </Button>
         </form>
       </CardContent>

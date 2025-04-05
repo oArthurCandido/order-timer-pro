@@ -34,7 +34,7 @@ const Navbar = () => {
       >
         <div className="flex items-center space-x-2">
           <Clock className="h-4 w-4" />
-          <span>Calculator</span>
+          <span>Calculadora</span>
         </div>
       </Link>
       <Link
@@ -47,7 +47,7 @@ const Navbar = () => {
       >
         <div className="flex items-center space-x-2">
           <ClipboardList className="h-4 w-4" />
-          <span>Orders</span>
+          <span>Pedidos</span>
         </div>
       </Link>
       <Link
@@ -60,7 +60,7 @@ const Navbar = () => {
       >
         <div className="flex items-center space-x-2">
           <LineChart className="h-4 w-4" />
-          <span>Dashboard</span>
+          <span>Painel</span>
         </div>
       </Link>
       {/* <Link
@@ -73,7 +73,7 @@ const Navbar = () => {
       >
         <div className="flex items-center space-x-2">
           <Calendar className="h-4 w-4" />
-          <span>Calendar</span>
+          <span>Calendário</span>
         </div>
       </Link> */}
       <Link
@@ -86,7 +86,7 @@ const Navbar = () => {
       >
         <div className="flex items-center space-x-2">
           <Settings className="h-4 w-4" />
-          <span>Settings</span>
+          <span>Configurações</span>
         </div>
       </Link>
     </>
@@ -100,7 +100,7 @@ const Navbar = () => {
             <Link to="/" className="flex items-center space-x-2">
               <Clock className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                OrderTimer
+                CleideTimer
               </span>
             </Link>
           </div>
@@ -122,7 +122,7 @@ const Navbar = () => {
                       className="justify-start mt-4"
                     >
                       <LogOut className="h-4 w-4 mr-2" />
-                      Logout
+                      Sair
                     </Button>
                   )}
                 </div>
@@ -139,7 +139,7 @@ const Navbar = () => {
                   className="ml-2"
                 >
                   <LogOut className="h-4 w-4 mr-2" />
-                  Logout
+                  Sair
                 </Button>
               )}
             </div>
