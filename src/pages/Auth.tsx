@@ -69,15 +69,17 @@ const Auth = () => {
           <div className="flex justify-center mb-2">
             <Clock className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">OrderTimer</CardTitle>
+          <CardTitle className="text-2xl font-bold"><span className="font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                CleideTimer
+              </span></CardTitle>
           <CardDescription>
-            Manage your production orders efficiently
+            Faça uma gestão eficiente 
           </CardDescription>
         </CardHeader>
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsTrigger value="login">Entrar</TabsTrigger>
+            <TabsTrigger value="register">Registrar</TabsTrigger>
           </TabsList>
           <TabsContent value="login">
             <form onSubmit={handleSignIn}>
@@ -94,7 +96,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">Senha</Label>
                   <Input
                     id="password"
                     type="password"
@@ -110,7 +112,7 @@ const Auth = () => {
                   className="w-full" 
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Logging in..." : "Login"}
+                  {isSubmitting ? "Entrando..." : "Entrar"}
                 </Button>
               </CardFooter>
             </form>
@@ -119,7 +121,7 @@ const Auth = () => {
             <form onSubmit={handleSignUp}>
               <CardContent className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="fullName">Nome completo</Label>
                   <Input
                     id="fullName"
                     placeholder="John Doe"
@@ -140,7 +142,7 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="register-password">Password</Label>
+                  <Label htmlFor="register-password">Senha</Label>
                   <Input
                     id="register-password"
                     type="password"
@@ -156,7 +158,7 @@ const Auth = () => {
                   className="w-full" 
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Creating Account..." : "Create Account"}
+                  {isSubmitting ? "Criando conta..." : "Criar conta"}
                 </Button>
               </CardFooter>
             </form>

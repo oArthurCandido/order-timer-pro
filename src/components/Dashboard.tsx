@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOrder } from "@/contexts/OrderContext";
@@ -19,6 +18,8 @@ import {
   Cell,
 } from "recharts";
 import { format, subDays, isWithinInterval, startOfDay, endOfDay, differenceInMinutes } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Order } from "@/types/order";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -33,7 +34,7 @@ const Dashboard = () => {
   const inProgressOrders = orders.filter((o) => o.status === "in-progress").length;
 
   // Calculate actual production time based on accumulated time and current progress
-  const getActualProductionTime = (order: any): number => {
+  const getActualProductionTime = (order: Order): number => {
     let time = order.productionTimeAccumulated || 0;
     
     // If order is in progress, add the current running time
@@ -67,10 +68,10 @@ const Dashboard = () => {
 
   // Status distribution for pie chart
   const statusData = [
-    { name: "Completed", value: completedOrders },
-    { name: "Pending", value: pendingOrders },
-    { name: "In Progress", value: inProgressOrders },
-    { name: "Cancelled", value: cancelledOrders },
+    { name: "Concluído", value: completedOrders },
+    { name: "Pendente", value: pendingOrders },
+    { name: "Em Produção", value: inProgressOrders },
+    { name: "Cancelado", value: cancelledOrders },
   ].filter((item) => item.value > 0);
 
   // Orders by day for the last 7 days
@@ -84,7 +85,7 @@ const Dashboard = () => {
     );
     
     return {
-      name: format(date, "EEE"),
+      name: format(date, "EEE", { locale: ptBR }),
       orders: ordersOnDay.length,
       completed: ordersOnDay.filter((o) => o.status === "completed").length,
     };
@@ -125,50 +126,50 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="card-gradient">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Pedidos</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalOrders}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Completed: {completedOrders} | Pending: {pendingOrders}
+              Concluídos: {completedOrders} | Pendentes: {pendingOrders}
             </p>
           </CardContent>
         </Card>
         
         <Card className="card-gradient">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average Production Time</CardTitle>
+            <CardTitle className="text-sm font-medium">Tempo Médio de Produção</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {averageActualProductionTime} min
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Based on actual production time
+              Baseado no tempo real de produção
             </p>
           </CardContent>
         </Card>
         
         <Card className="card-gradient">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Items Produced</CardTitle>
+            <CardTitle className="text-sm font-medium">Total de Itens Produzidos</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalItems}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Across all completed orders
+              Em todos os pedidos concluídos
             </p>
           </CardContent>
         </Card>
         
         <Card className="card-gradient">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Current Queue</CardTitle>
+            <CardTitle className="text-sm font-medium">Fila Atual</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingOrders + inProgressOrders}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              In progress: {inProgressOrders} | Waiting: {pendingOrders}
+              Em produção: {inProgressOrders} | Aguardando: {pendingOrders}
             </p>
           </CardContent>
         </Card>
@@ -181,7 +182,7 @@ const Dashboard = () => {
           <CardHeader>
             <div className="flex items-center space-x-2">
               <BarChart className="h-5 w-5 text-primary" />
-              <CardTitle>Orders by Day</CardTitle>
+              <CardTitle>Pedidos por Dia</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -192,8 +193,8 @@ const Dashboard = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="orders" name="Total Orders" fill="#0088FE" />
-                <Bar dataKey="completed" name="Completed" fill="#00C49F" />
+                <Bar dataKey="orders" name="Total de Pedidos" fill="#0088FE" />
+                <Bar dataKey="completed" name="Concluídos" fill="#00C49F" />
               </RechartsBarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -204,7 +205,7 @@ const Dashboard = () => {
           <CardHeader>
             <div className="flex items-center space-x-2">
               <PieChart className="h-5 w-5 text-primary" />
-              <CardTitle>Order Status Distribution</CardTitle>
+              <CardTitle>Distribuição por Status</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="flex justify-center">
@@ -231,7 +232,7 @@ const Dashboard = () => {
               </ResponsiveContainer>
             ) : (
               <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                No order data available
+                Nenhum dado de pedido disponível
               </div>
             )}
           </CardContent>
@@ -242,7 +243,7 @@ const Dashboard = () => {
           <CardHeader>
             <div className="flex items-center space-x-2">
               <LineChart className="h-5 w-5 text-primary" />
-              <CardTitle>Production Stats by Product</CardTitle>
+              <CardTitle>Estatísticas por Produto</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -258,13 +259,13 @@ const Dashboard = () => {
                   <YAxis yAxisId="right" orientation="right" stroke="#00C49F" />
                   <Tooltip />
                   <Legend />
-                  <Bar yAxisId="left" dataKey="units" name="Units" fill="#0088FE" />
-                  <Bar yAxisId="right" dataKey="time" name="Production Time (min)" fill="#00C49F" />
+                  <Bar yAxisId="left" dataKey="units" name="Unidades" fill="#0088FE" />
+                  <Bar yAxisId="right" dataKey="time" name="Tempo de Produção (min)" fill="#00C49F" />
                 </RechartsBarChart>
               </ResponsiveContainer>
             ) : (
               <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                No production data available
+                Nenhum dado de produção disponível
               </div>
             )}
           </CardContent>

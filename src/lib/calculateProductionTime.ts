@@ -101,15 +101,15 @@ export function getTotalQueuedProductionTime(orders: Order[]): number {
 
 export function formatDuration(minutes: number): string {
   if (minutes < 60) {
-    return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+    return `${minutes} minuto${minutes === 1 ? '' : 's'}`;
   }
   
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   
   if (remainingMinutes === 0) {
-    return `${hours} hour${hours === 1 ? '' : 's'}`;
+    return `${hours} hora${hours === 1 ? '' : 's'}`;
   }
   
-  return `${hours} hour${hours === 1 ? '' : 's'} and ${remainingMinutes} minute${remainingMinutes === 1 ? '' : 's'}`;
+  return `${hours} hora${hours === 1 ? '' : 's'} e ${remainingMinutes} minuto${remainingMinutes === 1 ? '' : 's'}`;
 }
