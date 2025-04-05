@@ -230,7 +230,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
     >
   ) => {
     if (!user) {
-      toast.error("You must be logged in to add orders");
+      toast.error("Você precisa estar logado para adicionar pedidos");
       return;
     }
 
@@ -267,11 +267,11 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       if (data) {
         // Manually fetch the updated order list instead of trying to update it in memory
         await fetchOrders();
-        toast.success("Order added successfully");
+        toast.success("Pedido adicionado com sucesso");
       }
     } catch (error: any) {
-      console.error("Error adding order:", error);
-      toast.error(error.message || "Failed to add order");
+      console.error("Erro adicionando pedido:", error);
+      toast.error(error.message || "Falha ao adicionar pedido");
     }
   };
 
@@ -333,7 +333,7 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
-      toast.error("Failed to refresh orders");
+      toast.error("Falha ao atualizar pedidos");
     }
   };
 
@@ -381,10 +381,10 @@ export function OrderProvider({ children }: { children: ReactNode }) {
         fetchOrders();
       }, 100);
 
-      toast.success(`Order status updated to ${status}`);
+      toast.success(`Status de pedido atualizado para: ${status}`);
     } catch (error: any) {
-      console.error("Error updating order status:", error);
-      toast.error(error.message || "Failed to update order status");
+      console.error("Erro ao atualizar status de pedido:", error);
+      toast.error(error.message || "Erro ao atualizar status de pedido");
     }
   };
 
@@ -403,10 +403,10 @@ export function OrderProvider({ children }: { children: ReactNode }) {
 
       // Fetch fresh data instead of trying to modify it in memory
       await fetchOrders();
-      toast.success("Order position updated");
+      toast.success("Posição do pedido atualizada");
     } catch (error: any) {
-      console.error("Error updating order position:", error);
-      toast.error(error.message || "Failed to update order position");
+      console.error("Erro updating order position:", error);
+      toast.error(error.message || "Falha ao atualizar posição do pedido");
     }
   };
 
@@ -424,13 +424,13 @@ export function OrderProvider({ children }: { children: ReactNode }) {
 
       // Just filter the deleted order from local state
       setOrders((prev) => prev.filter((order) => order.id !== id));
-      toast.success("Order deleted");
+      toast.success("Pedido apagado com sucesso");
 
       // Then refresh the queue positions
       await fetchOrders();
     } catch (error: any) {
       console.error("Error deleting order:", error);
-      toast.error(error.message || "Failed to delete order");
+      toast.error(error.message || "Falha ao apagar pedido");
     }
   };
 
@@ -455,10 +455,10 @@ export function OrderProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
 
       setSettings(newSettings);
-      toast.success("Production settings updated");
+      toast.success("Configurações atualizadas");
     } catch (error: any) {
       console.error("Error updating settings:", error);
-      toast.error(error.message || "Failed to update settings");
+      toast.error(error.message || "Falha ao atualizar configurações");
     }
   };
 
